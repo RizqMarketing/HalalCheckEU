@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HalalCheck EU - Professional Ingredient Analysis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #2e7d32;
+            --secondary-green: #4caf50;
+            --accent-gold: #f57c00;
+            --light-green: #e8f5e8;
+            --dark-green: #1b5e20;
+            --neutral-gray: #f5f5f5;
+            --text-dark: #212121;
+            --text-light: #757575;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --error: #f44336;
+            --info: #2196f3;
+            --white: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--light-green) 0%, var(--neutral-gray) 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+            color: var(--white);
+            padding: 2rem 0;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="islamic" patternUnits="userSpaceOnUse" width="20" height="20"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23islamic)"/></svg>');
+            opacity: 0.1;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid rgba(46, 125, 50, 0.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--secondary-green);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--secondary-green), var(--primary-green));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            color: var(--white);
+            font-size: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary-green);
+        }
+
+        .feature-description {
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .analysis-section {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin: 2rem 0;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--primary-green);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary-green);
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-green), var(--primary-green));
+            color: var(--white);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--neutral-gray);
+            color: var(--text-dark);
+            border: 1px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #eeeeee;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-halal {
+            background: rgba(76, 175, 80, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-haram {
+            background: rgba(244, 67, 54, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .status-mashbooh {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .status-requires-review {
+            background: rgba(33, 150, 243, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .analysis-result {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--secondary-green);
+            background: var(--light-green);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-green);
+        }
+
+        .ingredients-grid {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .ingredient-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border-left: 4px solid #e0e0e0;
+        }
+
+        .ingredient-item.halal {
+            border-left-color: var(--success);
+        }
+
+        .ingredient-item.haram {
+            border-left-color: var(--error);
+        }
+
+        .ingredient-item.mashbooh {
+            border-left-color: var(--warning);
+        }
+
+        .ingredient-info {
+            flex: 1;
+        }
+
+        .ingredient-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .ingredient-reason {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .recommendations {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(33, 150, 243, 0.05);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(33, 150, 243, 0.2);
+        }
+
+        .recommendations h4 {
+            color: var(--info);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .recommendations ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .recommendations li {
+            padding: 0.25rem 0;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .recommendations li::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(76, 175, 80, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--secondary-green);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-green);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer {
+            background: var(--text-dark);
+            color: var(--white);
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .quick-test-btn {
+            background: var(--white);
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quick-test-btn:hover {
+            background: var(--primary-green);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .analysis-preview {
+            background: var(--light-green);
+            border-left: 4px solid var(--primary-green);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+        }
+
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        /* Professional status styling */
+        .status-approved {
+            background: rgba(76, 175, 80, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        .status-prohibited {
+            background: rgba(244, 67, 54, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+        .status-questionable {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+        .status-verify_source, .status-verify-source {
+            background: rgba(33, 150, 243, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .result-highlight {
+            background: linear-gradient(135deg, var(--light-green), var(--white));
+            border: 2px solid var(--primary-green);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .beta-banner {
+            background: linear-gradient(135deg, var(--accent-gold), #ff6f00);
+            color: var(--white);
+            text-align: center;
+            padding: 0.75rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* File Upload Styles */
+        .file-upload-area {
+            border: 2px dashed var(--primary-green);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--light-green);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--secondary-green);
+            background: rgba(76, 175, 80, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--secondary-green);
+            background: rgba(76, 175, 80, 0.15);
+            transform: scale(1.02);
+        }
+
+        .feature-mini {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1rem;
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            gap: 0.5rem;
+        }
+
+        .upload-progress {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary-green), var(--primary-green));
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .bulk-results {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .bulk-result-item {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            border-left: 4px solid var(--primary-green);
+            box-shadow: var(--shadow);
+        }
+
+        .bulk-result-item.error {
+            border-left-color: var(--error);
+        }
+
+        .bulk-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .bulk-product-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .file-preview {
+            background: var(--neutral-gray);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid #e0e0e0;
+        }
+
+        .file-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .preview-products {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .preview-product {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: var(--white);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="beta-banner">
+        ⚠️ AI PRE-SCREENING TOOL - Accelerates workflows but final halal decisions require certified experts
+    </div>
+
+    <header class="header">
+        <div class="header-content">
+            <h1>
+                <i class="fas fa-mosque"></i>
+                HalalCheck EU
+            </h1>
+            <p class="subtitle">Professional Ingredient Analysis for Halal Compliance</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-microscope"></i>
+                </div>
+                <h3 class="feature-title">AI-Powered Analysis</h3>
+                <p class="feature-description">Ultra-smart AI analyzes ANY ingredient from the internet - no database limitations or blind spots</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3 class="feature-title">AI-Powered Pre-Screening</h3>
+                <p class="feature-description">Smart analysis to accelerate your review process - final decisions remain with certification experts</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <h3 class="feature-title">Bulk Processing</h3>
+                <p class="feature-description">Upload CSV files to analyze multiple products simultaneously</p>
+            </div>
+        </div>
+
+        <div class="analysis-section">
+            <h2 class="section-title">
+                <i class="fas fa-flask"></i>
+                Ingredient Analysis Tool
+            </h2>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" style="color: var(--success);"><i class="fas fa-robot"></i></div>
+                    <div class="stat-label">AI Powered</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="coverage">∞</div>
+                    <div class="stat-label">Ingredient Coverage</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: var(--accent-gold);">Expert</div>
+                    <div class="stat-label">AI Knowledge</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: var(--info);"><i class="fas fa-globe"></i></div>
+                    <div class="stat-label">Global Standards</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: var(--primary-green);"><i class="fas fa-clock"></i></div>
+                    <div class="stat-label">Time Saver</div>
+                </div>
+            </div>
+
+            <form id="analysisForm">
+                <div class="form-group">
+                    <label for="productName">Product Name</label>
+                    <input type="text" id="productName" placeholder="e.g., Chocolate Bar, Soft Drink" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="ingredients">Ingredients List</label>
+                    
+                    <!-- QUICK TEST BUTTONS -->
+                    <div style="margin-bottom: 1rem;">
+                        <p style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-light);">
+                            <i class="fas fa-bolt"></i> <strong>Quick Test Scenarios</strong> (Click to try real certification challenges):
+                        </p>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                            <button type="button" class="quick-test-btn" data-scenario="clean">
+                                <i class="fas fa-check-circle" style="color: green;"></i> Clean Halal
+                            </button>
+                            <button type="button" class="quick-test-btn" data-scenario="problem">
+                                <i class="fas fa-exclamation-triangle" style="color: red;"></i> Problem Ingredients  
+                            </button>
+                            <button type="button" class="quick-test-btn" data-scenario="tricky">
+                                <i class="fas fa-question-circle" style="color: orange;"></i> Needs Review
+                            </button>
+                            <button type="button" class="quick-test-btn" data-scenario="complex">
+                                <i class="fas fa-flask"></i> Complex Product
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <textarea id="ingredients" placeholder="🤖 ADVANCED AI ANALYSIS - Test ANY ingredient from the internet:&#10;&#10;🧪 Obscure chemicals: carboxymethylcellulose, transglutaminase, methylcellulose&#10;🔬 ANY E-numbers: E1103, E1505, E1422, E1200, E1420&#10;🎯 Complex ingredients: beef tallow, enzyme-modified cheese, yeast autolysate" required></textarea>
+                    
+                    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-light);">
+                        🤖 <strong>AI Assistant:</strong> Pre-screens ingredients to accelerate your workflow<br>
+                        ⚠️ <strong>Expert Review Required:</strong> Final halal decisions remain with certified professionals
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Analyze Ingredients
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                        <i class="fas fa-eraser"></i>
+                        Clear
+                    </button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing ingredients with AI...</p>
+            </div>
+
+            <div id="results" style="display: none;"></div>
+        </div>
+
+        <div class="analysis-section">
+            <h2 class="section-title">
+                <i class="fas fa-upload"></i>
+                Document Upload & Bulk Analysis
+            </h2>
+            
+            <div class="upload-features">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="feature-mini">
+                        <i class="fas fa-file-excel" style="color: #217346; font-size: 1.5rem;"></i>
+                        <strong>Excel Files</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-light);">.xlsx, .xls formats</span>
+                    </div>
+                    <div class="feature-mini">
+                        <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 1.5rem;"></i>
+                        <strong>PDF Reports</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-light);">Extract ingredient lists</span>
+                    </div>
+                    <div class="feature-mini">
+                        <i class="fas fa-file-csv" style="color: #28a745; font-size: 1.5rem;"></i>
+                        <strong>CSV Data</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-light);">Structured product data</span>
+                    </div>
+                    <div class="feature-mini">
+                        <i class="fas fa-file-alt" style="color: #6c757d; font-size: 1.5rem;"></i>
+                        <strong>Text Files</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-light);">Simple format lists</span>
+                    </div>
+                </div>
+            </div>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="documentFile">Upload Document</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="documentFile" name="file" 
+                               accept=".xlsx,.xls,.pdf,.csv,.txt" 
+                               style="display: none;">
+                        <div class="file-upload-area" onclick="document.getElementById('documentFile').click();">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--primary-green); margin-bottom: 0.5rem;"></i>
+                            <p><strong>Click to upload</strong> or drag files here</p>
+                            <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem;">
+                                Excel, PDF, CSV, or Text files (max 10MB)
+                            </p>
+                        </div>
+                        <div id="fileInfo" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-green); border-radius: 4px;">
+                            <i class="fas fa-file"></i>
+                            <span id="fileName"></span>
+                            <span id="fileSize" style="color: var(--text-light);"></span>
+                        </div>
+                    </div>
+                    <small style="color: var(--text-light); margin-top: 0.5rem; display: block;">
+                        <strong>Expected format:</strong> Documents should contain product names and ingredient lists in columns or structured text
+                    </small>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary" id="uploadBtn">
+                        <i class="fas fa-upload"></i>
+                        Process Document
+                    </button>
+                    <button type="button" class="btn btn-primary" id="bulkAnalyzeBtn" style="display: none; background: linear-gradient(135deg, #ff6b35, #f7931e); transform: scale(1.05); box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3); animation: pulse 2s infinite;">
+                        <i class="fas fa-magic"></i>
+                        🚀 Analyze All Products
+                    </button>
+                </div>
+                
+                <!-- Bulk Analysis Loading Indicator -->
+                <div id="bulkAnalysisLoading" style="display: none; margin-top: 1rem; padding: 1.5rem; background: var(--light-green); border-radius: var(--border-radius); border: 2px solid var(--primary-green); text-align: center;">
+                    <div class="spinner" style="margin: 0 auto 1rem auto;"></div>
+                    <h4 style="color: var(--primary-green); margin: 0 0 0.5rem 0;">
+                        <i class="fas fa-robot"></i> AI Analyzing Products...
+                    </h4>
+                    <p style="color: var(--text-light); margin: 0;">
+                        Advanced AI is performing detailed ingredient-by-ingredient analysis for each product
+                    </p>
+                    <div id="analysisProgress" style="margin-top: 1rem; font-size: 0.9rem; color: var(--primary-green);">
+                        Starting analysis...
+                    </div>
+                </div>
+            </form>
+            
+            <div id="uploadResults" style="display: none; margin-top: 1.5rem;">
+                <!-- Upload results will be displayed here -->
+            </div>
+        </div>
+
+        <div class="analysis-section">
+            <h2 class="section-title">
+                <i class="fas fa-envelope"></i>
+                Get Updates
+            </h2>
+            <form id="emailForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="feedback">Feedback (optional)</label>
+                    <textarea id="feedback" placeholder="How can we improve this tool?"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                    Send Feedback
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 HalalCheck EU. Professional halal ingredient analysis for European markets.</p>
+            <p style="margin-top: 0.5rem; opacity: 0.8;">
+                <i class="fas fa-info-circle"></i>
+                This is a demo version. Full production features coming soon.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // API endpoints
+        const API_BASE = window.location.origin;
+
+        // Quick test scenarios
+        const testScenarios = {
+            clean: {
+                product: "Halal Crackers",
+                ingredients: "wheat flour, palm oil, salt, yeast, sugar, E500 baking soda, turmeric"
+            },
+            problem: {
+                product: "Gummy Bears", 
+                ingredients: "sugar, glucose syrup, E441 gelatin, citric acid, natural flavors, E120 cochineal"
+            },
+            tricky: {
+                product: "Bread Mix",
+                ingredients: "wheat flour, yeast, salt, E920 L-cysteine, enzymes, natural flavoring, mono and diglycerides"
+            },
+            complex: {
+                product: "Premium Cheese",
+                ingredients: "milk, salt, rennet, lipase, calcium chloride, E509 calcium chloride, whey protein, natural cheese flavor"
+            }
+        };
+
+        // Quick test button handlers
+        document.querySelectorAll('.quick-test-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const scenario = e.currentTarget.dataset.scenario;
+                const data = testScenarios[scenario];
+                
+                document.getElementById('productName').value = data.product;
+                document.getElementById('ingredients').value = data.ingredients;
+                
+                // Add visual feedback
+                btn.style.background = 'var(--primary-green)';
+                btn.style.color = 'var(--white)';
+                setTimeout(() => {
+                    btn.style.background = 'var(--white)';
+                    btn.style.color = 'var(--primary-green)';
+                }, 200);
+                
+                // Auto-scroll to form
+                document.getElementById('ingredients').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // Form handlers
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await analyzeIngredients();
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await uploadDocument();
+        });
+
+        document.getElementById('bulkAnalyzeBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await bulkAnalyzeProducts();
+        });
+
+        document.getElementById('emailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await captureEmail();
+        });
+
+        async function analyzeIngredients() {
+            const productName = document.getElementById('productName').value;
+            const ingredients = document.getElementById('ingredients').value;
+            
+            if (!productName || !ingredients) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/analysis/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ productName, ingredients })
+                });
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error analyzing ingredients. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Global variable to store parsed products
+        let parsedProducts = [];
+
+        async function uploadDocument() {
+            const fileInput = document.getElementById('documentFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showLoading(true);
+            document.getElementById('uploadResults').style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    parsedProducts = data.products || [];
+                    displayUploadResults(data);
+                    const analyzeBtn = document.getElementById('bulkAnalyzeBtn');
+                    analyzeBtn.style.display = 'inline-flex';
+                    // Scroll to make button visible and add attention
+                    setTimeout(() => {
+                        analyzeBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 500);
+                } else {
+                    alert(data.message || 'Error processing file');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error uploading file. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function bulkAnalyzeProducts() {
+            const fileInput = document.getElementById('documentFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please upload a file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show bulk analysis loading indicator right here
+            showBulkAnalysisLoading(true);
+            document.getElementById('uploadResults').style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/analysis/bulk`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayBulkResults(data);
+                } else {
+                    alert(data.message || 'Error analyzing products');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error analyzing products. Please try again.');
+            } finally {
+                showBulkAnalysisLoading(false);
+            }
+        }
+
+        function showBulkAnalysisLoading(show) {
+            const loadingDiv = document.getElementById('bulkAnalysisLoading');
+            const progressDiv = document.getElementById('analysisProgress');
+            
+            if (show) {
+                loadingDiv.style.display = 'block';
+                progressDiv.textContent = 'Starting analysis...';
+                
+                // Simulate progress updates
+                let step = 1;
+                const progressInterval = setInterval(() => {
+                    const messages = [
+                        'Parsing ingredient lists...',
+                        'Analyzing ingredients with AI...',
+                        'Checking halal compliance...',
+                        'Generating detailed reports...',
+                        'Finalizing analysis...'
+                    ];
+                    
+                    if (step < messages.length) {
+                        progressDiv.textContent = messages[step];
+                        step++;
+                    }
+                }, 2000);
+                
+                // Clear interval when loading stops
+                loadingDiv.dataset.progressInterval = progressInterval;
+            } else {
+                loadingDiv.style.display = 'none';
+                if (loadingDiv.dataset.progressInterval) {
+                    clearInterval(loadingDiv.dataset.progressInterval);
+                }
+            }
+        }
+
+        // Professional text formatting functions
+        function formatStatus(status) {
+            const statusMap = {
+                'APPROVED': 'Approved',
+                'PROHIBITED': 'Prohibited', 
+                'QUESTIONABLE': 'Questionable',
+                'VERIFY_SOURCE': 'Verify Source',
+                // Legacy support
+                'HALAL': 'Approved',
+                'HARAM': 'Prohibited',
+                'MASHBOOH': 'Questionable'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatRisk(risk) {
+            const riskMap = {
+                'VERY_LOW': 'Very Low',
+                'LOW': 'Low',
+                'MEDIUM': 'Medium', 
+                'HIGH': 'High',
+                'VERY_HIGH': 'Very High'
+            };
+            return riskMap[risk] || risk;
+        }
+
+        function displayUploadResults(data) {
+            const resultsDiv = document.getElementById('uploadResults');
+            resultsDiv.style.display = 'block';
+            
+            const html = `
+                <div class="file-preview">
+                    <div class="file-preview-header">
+                        <span><i class="fas fa-file-check"></i> Document Processed Successfully</span>
+                        <span class="status-badge status-approved">${data.totalProducts} Products Found</span>
+                    </div>
+                    <p style="color: var(--text-light); margin-bottom: 1rem;">
+                        ${data.message}
+                    </p>
+                    <div class="preview-products">
+                        ${data.products.slice(0, 5).map(product => `
+                            <div class="preview-product">
+                                <strong>${product.productName}</strong>
+                                <span style="color: var(--text-light); max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                                    ${product.ingredients.substring(0, 60)}${product.ingredients.length > 60 ? '...' : ''}
+                                </span>
+                            </div>
+                        `).join('')}
+                        ${data.totalProducts > 5 ? `
+                            <div style="text-align: center; color: var(--text-light); font-style: italic; padding: 0.5rem;">
+                                ...and ${data.totalProducts - 5} more products
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function displayBulkResults(data) {
+            const resultsDiv = document.getElementById('uploadResults');
+            resultsDiv.style.display = 'block';
+            
+            const html = `
+                <div class="analysis-result">
+                    <div class="result-header">
+                        <i class="fas fa-chart-line" style="color: var(--primary-green); font-size: 2rem;"></i>
+                        <div>
+                            <h3 class="result-title">Detailed Bulk Analysis Report</h3>
+                            <span class="status-badge status-approved">
+                                ${data.totalProcessed} Products Analyzed
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="bulk-results">
+                        ${data.results.map((result, index) => {
+                            if (result.error) {
+                                return `
+                                    <div class="bulk-result-item error" style="margin-bottom: 2rem;">
+                                        <div class="bulk-result-header">
+                                            <span class="bulk-product-name">${result.product}</span>
+                                            <span class="status-badge status-prohibited">ERROR</span>
+                                        </div>
+                                        <p style="color: var(--error); font-size: 0.9rem;">${result.details}</p>
+                                    </div>
+                                `;
+                            } else {
+                                const statusClass = result.overall.toLowerCase().replace('_', '-');
+                                const overallIcon = {
+                                    'APPROVED': 'fa-check-circle',
+                                    'PROHIBITED': 'fa-times-circle',
+                                    'QUESTIONABLE': 'fa-exclamation-triangle', 
+                                    'VERIFY_SOURCE': 'fa-search'
+                                };
+                                
+                                return `
+                                    <div class="analysis-result" style="margin-bottom: 2rem; border: 2px solid var(--primary-green);">
+                                        <div class="result-header" style="background: var(--light-green); padding: 1rem; margin: -1.5rem -1.5rem 1rem -1.5rem;">
+                                            <i class="fas ${overallIcon[result.overall] || 'fa-info-circle'}" style="color: var(--primary-green); font-size: 1.5rem;"></i>
+                                            <div>
+                                                <h4 style="margin: 0; color: var(--primary-green); font-size: 1.3rem;">${result.product}</h4>
+                                                <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                                                    <span class="status-badge status-${statusClass}">${result.overall}</span>
+                                                    <span style="color: var(--text-light); font-size: 0.9rem;">
+                                                        Confidence: ${result.confidence}% • ${result.ingredients.length} ingredients analyzed
+                                                    </span>
+                                                </div>
+                                                ${result.debugInfo ? `
+                                                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(33, 150, 243, 0.1); border-radius: 4px; font-size: 0.8rem;">
+                                                        <strong>🔍 Debug Info:</strong><br>
+                                                        Raw: "${result.debugInfo.rawIngredients}"<br>
+                                                        Parsed: [${result.debugInfo.parsedIngredients.join(', ')}]<br>
+                                                        Expected: ${result.expectedIngredients} | Analyzed: ${result.actualIngredients}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+
+                                        <div class="ingredients-grid">
+                                            ${result.ingredients.map(ingredient => `
+                                                <div class="ingredient-item ${ingredient.status.toLowerCase().replace('_', '-')}">
+                                                    <div class="ingredient-info">
+                                                        <div class="ingredient-name">${ingredient.name}</div>
+                                                        <div class="ingredient-reason">${ingredient.reason}</div>
+                                                        ${ingredient.category ? `<div style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.25rem;"><i class="fas fa-tag"></i> ${ingredient.category}</div>` : ''}
+                                                    </div>
+                                                    <div style="text-align: right;">
+                                                        <span class="status-badge status-${ingredient.status.toLowerCase().replace('_', '-')}">
+                                                            ${formatStatus(ingredient.status)}
+                                                        </span>
+                                                        ${ingredient.risk ? `<div style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">Risk: ${formatRisk(ingredient.risk)}</div>` : ''}
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+
+                                        ${result.warnings && result.warnings.length > 0 ? `
+                                            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border-left: 4px solid var(--warning);">
+                                                <h5 style="color: var(--warning); margin: 0 0 0.5rem 0;"><i class="fas fa-exclamation-triangle"></i> Critical Warnings</h5>
+                                                ${result.warnings.map(w => `<div style="font-size: 0.9rem; margin: 0.25rem 0;">• ${w}</div>`).join('')}
+                                            </div>
+                                        ` : ''}
+
+                                        ${result.recommendations && result.recommendations.length > 0 ? `
+                                            <div class="recommendations" style="margin-top: 1rem;">
+                                                <h5><i class="fas fa-lightbulb"></i> Expert Recommendations</h5>
+                                                <ul style="margin: 0;">
+                                                    ${result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+
+                                        ${result.certificationAdvice && result.certificationAdvice.length > 0 ? `
+                                            <div style="margin-top: 1rem; padding: 1rem; background: rgba(33, 150, 243, 0.1); border-radius: 8px; border-left: 4px solid var(--info);">
+                                                <h5 style="color: var(--info); margin: 0 0 0.5rem 0;"><i class="fas fa-certificate"></i> Certification Guidance</h5>
+                                                ${result.certificationAdvice.map(advice => `<div style="font-size: 0.9rem; margin: 0.25rem 0;">• ${advice}</div>`).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }
+                        }).join('')}
+                    </div>
+
+                    <div style="margin-top: 2rem; padding: 1rem; background: var(--light-green); border-radius: 8px; text-align: center;">
+                        <h4 style="color: var(--primary-green); margin: 0 0 0.5rem 0;">
+                            <i class="fas fa-clipboard-check"></i> Analysis Summary
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-number" style="color: var(--success);">
+                                    ${data.results.filter(r => !r.error && r.overall === 'APPROVED').length}
+                                </div>
+                                <div class="stat-label">Approved</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" style="color: var(--error);">
+                                    ${data.results.filter(r => !r.error && r.overall === 'PROHIBITED').length}
+                                </div>
+                                <div class="stat-label">Prohibited</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" style="color: var(--warning);">
+                                    ${data.results.filter(r => !r.error && r.overall === 'QUESTIONABLE').length}
+                                </div>
+                                <div class="stat-label">Questionable</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" style="color: var(--info);">
+                                    ${data.results.filter(r => !r.error && r.overall === 'VERIFY_SOURCE').length}
+                                </div>
+                                <div class="stat-label">Verify Source</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function captureEmail() {
+            const email = document.getElementById('email').value;
+            const feedback = document.getElementById('feedback').value;
+
+            if (!email) {
+                alert('Please enter your email address');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/capture-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, source: 'demo', feedback })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Thank you for your feedback! We\'ll keep you updated on improvements.');
+                    document.getElementById('emailForm').reset();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error submitting feedback. Please try again.');
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.classList.add('fade-in');
+
+            const overallColor = {
+                'APPROVED': 'success',
+                'PROHIBITED': 'error', 
+                'QUESTIONABLE': 'warning',
+                'VERIFY_SOURCE': 'info',
+                // Legacy support
+                'HALAL': 'success',
+                'HARAM': 'error',
+                'MASHBOOH': 'warning',
+                'REQUIRES_REVIEW': 'info'
+            };
+
+            const overallIcon = {
+                'APPROVED': 'fa-check-circle',
+                'PROHIBITED': 'fa-times-circle',
+                'QUESTIONABLE': 'fa-exclamation-triangle', 
+                'VERIFY_SOURCE': 'fa-search',
+                // Legacy support
+                'HALAL': 'fa-check-circle',
+                'HARAM': 'fa-times-circle',
+                'MASHBOOH': 'fa-exclamation-triangle',
+                'REQUIRES_REVIEW': 'fa-info-circle'
+            };
+
+            const html = `
+                <div class="analysis-result">
+                    <div class="result-header">
+                        <i class="fas ${overallIcon[data.overall]}" style="color: var(--${overallColor[data.overall]}); font-size: 2rem;"></i>
+                        <div>
+                            <h3 class="result-title">${data.product}</h3>
+                            <span class="status-badge status-${data.overall.toLowerCase()}">
+                                ${formatStatus(data.overall)}
+                            </span>
+                            <span style="margin-left: 1rem; color: var(--text-light);">
+                                Confidence: ${data.confidence}%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="ingredients-grid">
+                        ${data.ingredients.map(ingredient => `
+                            <div class="ingredient-item ${ingredient.status.toLowerCase()}">
+                                <div class="ingredient-info">
+                                    <div class="ingredient-name">${ingredient.name}</div>
+                                    <div class="ingredient-reason">${ingredient.reason}</div>
+                                </div>
+                                <span class="status-badge status-${ingredient.status.toLowerCase()}">
+                                    ${formatStatus(ingredient.status)}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    ${data.recommendations && data.recommendations.length > 0 ? `
+                        <div class="recommendations">
+                            <h4><i class="fas fa-lightbulb"></i> Recommendations</h4>
+                            <ul>
+                                ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            
+            if (show) {
+                loading.classList.add('active');
+                results.style.display = 'none';
+            } else {
+                loading.classList.remove('active');
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('analysisForm').reset();
+            document.getElementById('results').style.display = 'none';
+        }
+
+        // File upload enhancements
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('documentFile');
+            const uploadArea = document.querySelector('.file-upload-area');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+
+            // File input change handler
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    displayFileInfo(file);
+                }
+            });
+
+            // Drag and drop handlers
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    displayFileInfo(files[0]);
+                }
+            });
+
+            function displayFileInfo(file) {
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileName.textContent = file.name;
+                fileSize.textContent = `(${sizeInMB} MB)`;
+                fileInfo.style.display = 'block';
+                
+                // Hide bulk analyze button when new file is selected
+                document.getElementById('bulkAnalyzeBtn').style.display = 'none';
+                document.getElementById('uploadResults').style.display = 'none';
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        });
+
+        // Load stats on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/database/stats`);
+                const stats = await response.json();
+                
+                document.getElementById('total-ingredients').textContent = stats.total || '400+';
+                document.getElementById('halal-count').textContent = stats.halal || '320+';
+                document.getElementById('review-count').textContent = stats.requiresReview || '50+';
+                document.getElementById('haram-count').textContent = stats.haram || '30+';
+            } catch (error) {
+                console.log('Could not load live stats, using defaults');
+            }
+        });
+    </script>
+</body>
+</html>
