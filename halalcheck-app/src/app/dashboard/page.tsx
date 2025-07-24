@@ -332,15 +332,23 @@ export default function Dashboard() {
                     <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd"/>
                   </svg>
                 </div>
-                <div className="text-xs bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full text-white font-medium">PRIORITY</div>
+                <div className="text-xs bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full text-white font-medium">START HERE</div>
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">New Halal Analysis</h3>
-              <p className="text-emerald-100 text-sm mb-4">Upload & analyze ingredients with Islamic jurisprudence</p>
-              <div className="flex items-center text-xs text-emerald-100">
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
-                </svg>
-                30 sec avg processing
+              <h3 className="text-lg font-bold text-white mb-2">AI Ingredient Analysis</h3>
+              <p className="text-emerald-100 text-sm mb-4">Start workflow: Analyze → Save to Pipeline → Issue Certificate</p>
+              <div className="flex items-center justify-between text-xs text-emerald-100">
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                  </svg>
+                  30 sec analysis
+                </div>
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Full workflow
+                </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-emerald-600/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </Link>
@@ -450,6 +458,109 @@ export default function Dashboard() {
                 {profile?.company_name || 'Certification body'}
               </div>
             </Link>
+          </div>
+        </div>
+
+        {/* Workflow Status Dashboard */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/>
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">Integrated Workflow</h2>
+            <span className="text-sm text-slate-500">Analysis → Applications → Certificates → Analytics</span>
+          </div>
+
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 p-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/25">
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd"/>
+                  </svg>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-1">1. Analyze</h3>
+                <p className="text-sm text-slate-600">AI ingredient analysis</p>
+                <div className="mt-2">
+                  <Link 
+                    href="/dashboard/analyze"
+                    className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                  >
+                    Start Analysis →
+                  </Link>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/25">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-1">2. Application</h3>
+                <p className="text-sm text-slate-600">Save to pipeline</p>
+                <div className="mt-2">
+                  <Link 
+                    href="/dashboard/applications"
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    View Pipeline →
+                  </Link>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-purple-500/25">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-1">3. Certificate</h3>
+                <p className="text-sm text-slate-600">Issue official certificate</p>
+                <div className="mt-2">
+                  <Link 
+                    href="/dashboard/certificates"
+                    className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    Issue Certificate →
+                  </Link>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-red-500/25">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-1">4. Analytics</h3>
+                <p className="text-sm text-slate-600">Track performance</p>
+                <div className="mt-2">
+                  <Link 
+                    href="/dashboard/analytics"
+                    className="text-xs text-red-600 hover:text-red-700 font-medium"
+                  >
+                    View Analytics →
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-slate-200/60">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-slate-600">
+                  <span className="font-medium">Complete Workflow:</span> Seamlessly integrated from ingredient analysis to business insights
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-emerald-600">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                  </svg>
+                  <span className="font-medium">Fully Connected</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

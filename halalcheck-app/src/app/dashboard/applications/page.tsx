@@ -2,21 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface Application {
-  id: string
-  clientName: string
-  company: string
-  productName: string
-  email: string
-  phone: string
-  submittedDate: string
-  status: 'new' | 'reviewing' | 'approved' | 'certified' | 'rejected'
-  priority: 'high' | 'normal' | 'low'
-  documents: string[]
-  analysisResult?: any
-  notes: string
-}
+import { dataManager, Application } from '@/lib/data-manager'
 
 const statusConfig = {
   new: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'New Application' },
@@ -31,79 +17,23 @@ export default function ApplicationsPage() {
   const [draggedApp, setDraggedApp] = useState<string | null>(null)
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showNewAppModal, setShowNewAppModal] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
 
   useEffect(() => {
     loadApplications()
+    
+    // Subscribe to data changes
+    const unsubscribe = dataManager.subscribe(() => {
+      loadApplications()
+    })
+
+    return unsubscribe
   }, [])
 
   const loadApplications = () => {
-    const stored = localStorage.getItem('halalcheck_applications')
-    if (stored) {
-      setApplications(JSON.parse(stored))
-    } else {
-      // Initialize with sample data for trial users
-      const sampleApps: Application[] = [
-        {
-          id: '1',
-          clientName: 'Ahmed Hassan',
-          company: 'Middle East Foods Ltd',
-          productName: 'Halal Beef Sausages',
-          email: 'ahmed@mefoods.com',
-          phone: '+31 20 123 4567',
-          submittedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'new',
-          priority: 'high',
-          documents: ['ingredient_list.pdf', 'supplier_certificates.pdf'],
-          notes: 'Rush order for Eid production'
-        },
-        {
-          id: '2',
-          clientName: 'Fatima Al-Zahra',
-          company: 'Istanbul Bakery Chain',
-          productName: 'Traditional Baklava Mix',
-          email: 'fatima@istanbulbakery.com',
-          phone: '+31 20 987 6543',
-          submittedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'reviewing',
-          priority: 'normal',
-          documents: ['baklava_recipe.pdf', 'supplier_list.xlsx'],
-          notes: 'Traditional recipe, family business'
-        },
-        {
-          id: '3',
-          clientName: 'Mohammed Boutros',
-          company: 'Halal Pharmaceuticals BV',
-          productName: 'Vitamin Supplements (Capsules)',
-          email: 'm.boutros@hpharma.nl',
-          phone: '+31 20 555 0123',
-          submittedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'approved',
-          priority: 'normal',
-          documents: ['ingredients.pdf', 'manufacturing_process.pdf', 'lab_reports.pdf'],
-          notes: 'Pharmaceutical grade certification required'
-        },
-        {
-          id: '4',
-          clientName: 'Khadija Rahman',
-          company: 'European Halal Meats',
-          productName: 'Frozen Halal Chicken Products',
-          email: 'khadija@ehmeats.eu',
-          phone: '+31 20 444 5678',
-          submittedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'certified',
-          priority: 'high',
-          documents: ['slaughter_certificate.pdf', 'cold_chain_docs.pdf', 'facility_inspection.pdf'],
-          notes: 'Certificate issued HC-2024-001'
-        }
-      ]
-      setApplications(sampleApps)
-      localStorage.setItem('halalcheck_applications', JSON.stringify(sampleApps))
-    }
-  }
-
-  const saveApplications = (apps: Application[]) => {
-    setApplications(apps)
-    localStorage.setItem('halalcheck_applications', JSON.stringify(apps))
+    setApplications(dataManager.getApplications())
   }
 
   const handleDragStart = (appId: string) => {
@@ -117,16 +47,23 @@ export default function ApplicationsPage() {
   const handleDrop = (e: React.DragEvent, newStatus: Application['status']) => {
     e.preventDefault()
     if (draggedApp) {
-      const updatedApps = applications.map(app =>
-        app.id === draggedApp ? { ...app, status: newStatus } : app
-      )
-      saveApplications(updatedApps)
+      dataManager.updateApplication(draggedApp, { status: newStatus })
       setDraggedApp(null)
     }
   }
 
   const getApplicationsByStatus = (status: Application['status']) => {
-    return applications.filter(app => app.status === status)
+    let filtered = applications.filter(app => app.status === status)
+    
+    if (searchTerm) {
+      filtered = filtered.filter(app => 
+        app.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.productName.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+    
+    return filtered
   }
 
   const formatDate = (dateString: string) => {
@@ -158,11 +95,15 @@ export default function ApplicationsPage() {
 
   const updateApplicationNotes = (notes: string) => {
     if (selectedApp) {
-      const updatedApps = applications.map(app =>
-        app.id === selectedApp.id ? { ...app, notes } : app
-      )
-      saveApplications(updatedApps)
+      dataManager.updateApplication(selectedApp.id, { notes })
       setSelectedApp({ ...selectedApp, notes })
+    }
+  }
+
+  const deleteApplication = (appId: string) => {
+    if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+      dataManager.deleteApplication(appId)
+      setShowModal(false)
     }
   }
 
@@ -210,20 +151,61 @@ export default function ApplicationsPage() {
                 </p>
               </div>
             </div>
-            <Link 
-              href="/dashboard"
-              className="inline-flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span>Back to Dashboard</span>
-            </Link>
+            <div className="flex items-center space-x-3">
+              <button 
+                onClick={() => setShowNewAppModal(true)}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg shadow-blue-500/25"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>New Application</span>
+              </button>
+              <Link 
+                href="/dashboard"
+                className="inline-flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Back to Dashboard</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Search and Filter */}
+        <div className="mb-8 flex items-center space-x-4">
+          <div className="flex-1">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search applications..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              />
+            </div>
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          >
+            <option value="all">All Status</option>
+            <option value="new">New</option>
+            <option value="reviewing">Under Review</option>
+            <option value="approved">Approved</option>
+            <option value="certified">Certified</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {columns.map(column => (
@@ -264,7 +246,7 @@ export default function ApplicationsPage() {
                 {getApplicationsByStatus(column.status).map(app => (
                   <div
                     key={app.id}
-                    className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-move"
+                    className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-move group"
                     draggable
                     onDragStart={() => handleDragStart(app.id)}
                     onClick={() => openApplicationModal(app)}
@@ -299,8 +281,33 @@ export default function ApplicationsPage() {
                         <span>{app.documents.length} documents</span>
                       </div>
                     </div>
+
+                    {/* Quick Actions (visible on hover) */}
+                    <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Click to edit</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteApplication(app.id)
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
+                
+                {getApplicationsByStatus(column.status).length === 0 && (
+                  <div className="text-center text-slate-400 py-8">
+                    <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <p>No applications</p>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -309,86 +316,339 @@ export default function ApplicationsPage() {
 
       {/* Application Detail Modal */}
       {showModal && selectedApp && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900">{selectedApp.productName}</h2>
-                <button
-                  onClick={closeModal}
-                  className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Client Name</label>
-                  <p className="text-slate-900">{selectedApp.clientName}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Company</label>
-                  <p className="text-slate-900">{selectedApp.company}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Email</label>
-                  <p className="text-slate-900">{selectedApp.email}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Phone</label>
-                  <p className="text-slate-900">{selectedApp.phone}</p>
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-700">Status</label>
-                <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full border mt-1 ${statusConfig[selectedApp.status].color}`}>
-                  {statusConfig[selectedApp.status].label}
-                </span>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-700">Documents</label>
-                <div className="mt-2 space-y-2">
-                  {selectedApp.documents.map((doc, index) => (
-                    <div key={index} className="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg">
-                      <svg className="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd"/>
-                      </svg>
-                      <span className="text-sm text-slate-700">{doc}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-700">Notes</label>
-                <textarea
-                  value={selectedApp.notes}
-                  onChange={(e) => updateApplicationNotes(e.target.value)}
-                  className="w-full mt-2 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
-                  placeholder="Add notes about this application..."
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
-                  Start Analysis
-                </button>
-                <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
-                  Generate Certificate
-                </button>
-              </div>
-            </div>
+        <ApplicationModal 
+          application={selectedApp}
+          onClose={closeModal}
+          onUpdate={updateApplicationNotes}
+          onDelete={deleteApplication}
+        />
+      )}
+
+      {/* New Application Modal */}
+      {showNewAppModal && (
+        <NewApplicationModal
+          onClose={() => setShowNewAppModal(false)}
+          onCreate={(appData) => {
+            dataManager.addApplication(appData)
+            setShowNewAppModal(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Application Detail Modal Component
+function ApplicationModal({ application, onClose, onUpdate, onDelete }: {
+  application: Application
+  onClose: () => void
+  onUpdate: (notes: string) => void
+  onDelete: (id: string) => void
+}) {
+  const [notes, setNotes] = useState(application.notes)
+
+  const handleSave = () => {
+    onUpdate(notes)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">{application.productName}</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
-      )}
+        
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700">Client Name</label>
+              <p className="text-slate-900">{application.clientName}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">Company</label>
+              <p className="text-slate-900">{application.company}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">Email</label>
+              <p className="text-slate-900">{application.email}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">Phone</label>
+              <p className="text-slate-900">{application.phone}</p>
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-slate-700">Status</label>
+            <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full border mt-1 ${statusConfig[application.status].color}`}>
+              {statusConfig[application.status].label}
+            </span>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-slate-700">Documents</label>
+            <div className="mt-2 space-y-2">
+              {application.documents.map((doc, index) => (
+                <div key={index} className="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg">
+                  <svg className="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd"/>
+                  </svg>
+                  <span className="text-sm text-slate-700">{doc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-slate-700">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={handleSave}
+              className="w-full mt-2 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={3}
+              placeholder="Add notes about this application..."
+            />
+          </div>
+          
+          <div className="flex space-x-3">
+            <button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+              Start Analysis
+            </button>
+            <button 
+              onClick={() => onDelete(application.id)}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// New Application Modal Component
+function NewApplicationModal({ onClose, onCreate }: {
+  onClose: () => void
+  onCreate: (data: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>) => void
+}) {
+  const [formData, setFormData] = useState({
+    clientName: '',
+    company: '',
+    productName: '',
+    email: '',
+    phone: '',
+    status: 'new' as Application['status'],
+    priority: 'normal' as Application['priority'],
+    documents: [] as string[],
+    notes: '',
+    submittedDate: new Date().toISOString(),
+    analysisResult: undefined
+  })
+
+  const [newDocument, setNewDocument] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.clientName || !formData.company || !formData.productName || !formData.email) {
+      alert('Please fill in all required fields')
+      return
+    }
+    onCreate(formData)
+  }
+
+  const addDocument = () => {
+    if (newDocument.trim()) {
+      setFormData({
+        ...formData,
+        documents: [...formData.documents, newDocument.trim()]
+      })
+      setNewDocument('')
+    }
+  }
+
+  const removeDocument = (index: number) => {
+    setFormData({
+      ...formData,
+      documents: formData.documents.filter((_, i) => i !== index)
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">New Application</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Client Name *</label>
+              <input
+                type="text"
+                value={formData.clientName}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Company *</label>
+              <input
+                type="text"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Product Name *</label>
+            <input
+              type="text"
+              value={formData.productName}
+              onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
+              className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as Application['priority'] })}
+                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as Application['status'] })}
+                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="new">New</option>
+                <option value="reviewing">Under Review</option>
+                <option value="approved">Approved</option>
+                <option value="certified">Certified</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Documents</label>
+            <div className="flex space-x-2 mb-2">
+              <input
+                type="text"
+                value={newDocument}
+                onChange={(e) => setNewDocument(e.target.value)}
+                placeholder="Document name (e.g., ingredient_list.pdf)"
+                className="flex-1 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={addDocument}
+                className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+            <div className="space-y-2">
+              {formData.documents.map((doc, index) => (
+                <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                  <span className="text-sm text-slate-700">{doc}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeDocument(index)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={3}
+              placeholder="Additional notes about this application..."
+            />
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 px-4 rounded-lg font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+            >
+              Create Application
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

@@ -13,9 +13,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. Start frontend: `cd "C:\Users\mazin\HalalCheck AI\halalcheck-app" && npm run dev -- --port 3004`
 
 **Key files:**
-- Backend API: `simple-server.js` (OpenAI integration, auth endpoints)
-- Frontend: `halalcheck-app/src/app/` (Next.js pages)
-- API config: `halalcheck-app/.env.local` (points to localhost:3003)
+- Backend API: `simple-server.js` (OpenAI integration, auth endpoints)  
+- Frontend: `halalcheck-app/src/app/` (Next.js App Router pages)
+- API Client: `halalcheck-app/src/lib/api.ts` (centralized API communications)
+- Data Manager: `halalcheck-app/src/lib/data-manager.ts` (singleton state management)
+- Environment: `halalcheck-app/.env.local` (points to localhost:3003)
 
 ## 🚀 Quick Start Commands
 
@@ -119,27 +121,34 @@ npm run clean             # Clean Docker system
 └── nginx/               # Reverse proxy configuration
 ```
 
-## 🔧 Development Patterns
+## 🔧 Development Patterns & Architecture
 
-### Backend API Structure
-- **Routes**: RESTful API in `backend/src/routes/`
-- **Authentication**: JWT tokens with role-based access control
-- **Database**: PostgreSQL with Redis caching for analysis results
-- **File Processing**: Multer for uploads, multiple format parsers
-- **AI Integration**: OpenAI API with fallback and error handling
+### Current Active Backend (`simple-server.js`)
+- **Single File Server**: Express.js with all routes in one file for simplicity
+- **OpenAI Integration**: GPT-4o for ingredient analysis with confidence calculation fallback
+- **File Processing**: Multer for CSV uploads, custom parsing functions  
+- **Authentication**: Mock JWT tokens for demo/trial functionality
+- **Storage**: In-memory/file-based for trial, ready for PostgreSQL/Redis scaling
 
-### Frontend Architecture
-- **App Router**: Next.js 14 with TypeScript and Tailwind CSS
-- **State Management**: React hooks with API service layer
-- **Authentication**: Token-based with protected routes
-- **UI Components**: Custom components built with Tailwind
-- **API Integration**: Centralized API client in `src/lib/api.ts`
+### Frontend Architecture (Next.js 14)
+- **App Router**: File-based routing in `src/app/` directory
+- **Centralized State**: Singleton `dataManager` class for Applications/Certificates/Analytics
+- **State Persistence**: localStorage with 24-hour auto-expiry for analysis dashboard
+- **API Layer**: Single `apiService` class handling all backend communications
+- **Client-side Workflow**: Analysis → Applications → Certificates → Analytics pipeline
 
-### Database Schema
-- **Multi-tenancy**: Organization-based data isolation
-- **User Management**: RBAC with role hierarchy
-- **Analysis Storage**: Results cached in Redis, metadata in PostgreSQL
-- **Audit Logging**: Complete activity trail for compliance
+### Key Data Flow Patterns
+1. **Analysis Workflow**: User input → OpenAI API → Confidence calculation → LocalStorage → Application pipeline
+2. **State Management**: DataManager singleton syncs Applications ↔ Certificates with auto-generated relationships
+3. **Client Pre-selection**: Dropdown populated from existing applications, auto-assigns to analysis results
+4. **Bulk Processing**: Single application entry OR multiple separate applications for bulk analysis
+5. **Real-time Updates**: DataManager notifies components via subscriber pattern for dashboard sync
+
+### UI/UX Patterns
+- **Smart Reset Controls**: "State saved" indicators with selective clear options
+- **Workflow Integration**: Each analysis can be saved directly to application pipeline
+- **Client Assignment**: Pre-select clients to auto-populate analysis results
+- **State Restoration**: Automatic restore of analysis work when returning to page
 
 ## 💼 Business Model & Pricing
 
@@ -228,7 +237,30 @@ Required `.env` variables:
 - **Deployment**: `deploy.sh`
 
 ### Business Logic
-- **Analysis Engine**: `backend/src/services/analysis.ts`
-- **User Management**: `backend/src/routes/auth.ts`
-- **Subscription**: `backend/src/routes/billing.ts`
-- **Dashboard**: `halalcheck-app/src/app/dashboard/`
+- **Analysis Engine**: `simple-server.js` (analyzeWithGPT4 function + confidence calculation)
+- **User Management**: `simple-server.js` (mock auth endpoints)
+- **Data Management**: `halalcheck-app/src/lib/data-manager.ts` (singleton pattern)
+- **Dashboard Pages**: `halalcheck-app/src/app/dashboard/` (analyze, applications, certificates, analytics)
+- **API Service**: `halalcheck-app/src/lib/api.ts` (centralized backend communication)
+
+## 🔄 Common Development Tasks
+
+### Modifying Analysis Logic
+1. **Confidence Calculation**: Edit `calculateRealisticConfidence()` in `simple-server.js`
+2. **AI Prompts**: Update `analyzeWithGPT4()` system/user messages in `simple-server.js`
+3. **UI State**: Analysis form state managed in `halalcheck-app/src/app/dashboard/analyze/page.tsx`
+
+### Adding New Dashboard Pages
+1. Create page in `halalcheck-app/src/app/dashboard/[pagename]/page.tsx`
+2. Add navigation link in main dashboard layout
+3. Use `dataManager` for data access and `apiService` for backend calls
+
+### Workflow Integration Changes
+1. **DataManager Methods**: Add/modify in `data-manager.ts` for data operations
+2. **State Persistence**: Analysis state auto-saved to localStorage with 24h expiry
+3. **Client Assignment**: Pre-selection dropdown populated from existing applications
+
+### Backend API Extensions
+1. **New Endpoints**: Add routes directly to `simple-server.js` 
+2. **File Processing**: Use existing `multer` setup and parsing functions
+3. **OpenAI Integration**: Extend `analyzeWithGPT4()` function for new analysis types

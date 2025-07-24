@@ -2,37 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface AnalyticsData {
-  certificatesIssued: number
-  applicationsReceived: number
-  averageProcessingTime: number
-  clientSatisfaction: number
-  revenueGenerated: number
-  monthlyGrowth: number
-  topClients: Array<{
-    name: string
-    company: string
-    certificates: number
-    revenue: number
-  }>
-  monthlyStats: Array<{
-    month: string
-    certificates: number
-    applications: number
-    revenue: number
-  }>
-  categoryBreakdown: Array<{
-    category: string
-    count: number
-    percentage: number
-  }>
-  statusDistribution: Array<{
-    status: string
-    count: number
-    color: string
-  }>
-}
+import { dataManager, AnalyticsData } from '@/lib/data-manager'
 
 export default function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
@@ -41,58 +11,24 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     loadAnalyticsData()
+    
+    // Subscribe to data changes
+    const unsubscribe = dataManager.subscribe(() => {
+      loadAnalyticsData()
+    })
+
+    return unsubscribe
   }, [selectedPeriod])
 
   const loadAnalyticsData = async () => {
     setIsLoading(true)
     
-    // Simulate API call with realistic data
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Simulate loading time for better UX
+    await new Promise(resolve => setTimeout(resolve, 800))
     
-    const mockData: AnalyticsData = {
-      certificatesIssued: 247,
-      applicationsReceived: 312,
-      averageProcessingTime: 3.2,
-      clientSatisfaction: 4.8,
-      revenueGenerated: 89750,
-      monthlyGrowth: 18.5,
-      topClients: [
-        { name: 'Ahmed Hassan', company: 'Middle East Foods Ltd', certificates: 12, revenue: 8400 },
-        { name: 'Fatima Al-Zahra', company: 'Istanbul Bakery Chain', certificates: 9, revenue: 6300 },
-        { name: 'Omar Mansouri', company: 'Mediterranean Spices Co', certificates: 8, revenue: 5600 },
-        { name: 'Khadija Rahman', company: 'European Halal Meats', certificates: 7, revenue: 4900 },
-        { name: 'Mohammed Boutros', company: 'Halal Pharmaceuticals BV', certificates: 6, revenue: 4200 }
-      ],
-      monthlyStats: [
-        { month: 'Jan', certificates: 18, applications: 23, revenue: 6300 },
-        { month: 'Feb', certificates: 22, applications: 28, revenue: 7700 },
-        { month: 'Mar', certificates: 25, applications: 32, revenue: 8750 },
-        { month: 'Apr', certificates: 20, applications: 26, revenue: 7000 },
-        { month: 'May', certificates: 28, applications: 35, revenue: 9800 },
-        { month: 'Jun', certificates: 24, applications: 30, revenue: 8400 },
-        { month: 'Jul', certificates: 26, applications: 33, revenue: 9100 },
-        { month: 'Aug', certificates: 23, applications: 29, revenue: 8050 },
-        { month: 'Sep', certificates: 29, applications: 36, revenue: 10150 },
-        { month: 'Oct', certificates: 32, applications: 40, revenue: 11200 },
-        { month: 'Nov', certificates: 28, applications: 35, revenue: 9800 },
-        { month: 'Dec', certificates: 31, applications: 39, revenue: 10850 }
-      ],
-      categoryBreakdown: [
-        { category: 'Food Products', count: 128, percentage: 52 },
-        { category: 'Beverages', count: 45, percentage: 18 },
-        { category: 'Cosmetics', count: 32, percentage: 13 },
-        { category: 'Pharmaceuticals', count: 25, percentage: 10 },
-        { category: 'Others', count: 17, percentage: 7 }
-      ],
-      statusDistribution: [
-        { status: 'Active', count: 198, color: 'bg-green-500' },
-        { status: 'Expired', count: 32, color: 'bg-amber-500' },
-        { status: 'Pending', count: 15, color: 'bg-blue-500' },
-        { status: 'Revoked', count: 2, color: 'bg-red-500' }
-      ]
-    }
-
-    setAnalyticsData(mockData)
+    // Get real data from data manager
+    const realData = dataManager.getAnalyticsData()
+    setAnalyticsData(realData)
     setIsLoading(false)
   }
 
@@ -113,6 +49,89 @@ export default function AnalyticsPage() {
 
   const formatPercentage = (value: number) => {
     return `${value > 0 ? '+' : ''}${value}%`
+  }
+
+  const exportToPDF = () => {
+    if (!analyticsData) return
+
+    const reportContent = `
+HalalCheck AI - Analytics Report
+Generated on: ${new Date().toLocaleDateString()}
+Period: ${selectedPeriod}
+
+=== SUMMARY ===
+Total Applications: ${analyticsData.totalApplications}
+Certificates Issued: ${analyticsData.certificatesIssued}
+Revenue Generated: ${formatCurrency(analyticsData.revenueGenerated)}
+Average Processing Time: ${analyticsData.averageProcessingTime} days
+Client Satisfaction: ${analyticsData.clientSatisfaction}/5.0
+Monthly Growth: ${formatPercentage(analyticsData.monthlyGrowth)}
+
+=== TOP CLIENTS ===
+${analyticsData.topClients.map((client, index) => 
+  `${index + 1}. ${client.name} (${client.company}) - ${client.certificates} certificates, ${formatCurrency(client.revenue)}`
+).join('\n')}
+
+=== CATEGORY BREAKDOWN ===
+${analyticsData.categoryBreakdown.map(category => 
+  `${category.category}: ${category.count} (${category.percentage}%)`
+).join('\n')}
+
+=== CERTIFICATE STATUS ===
+${analyticsData.statusDistribution.map(status => 
+  `${status.status}: ${status.count} certificates`
+).join('\n')}
+
+=== MONTHLY PERFORMANCE ===
+${analyticsData.monthlyStats.map(stat => 
+  `${stat.month}: ${stat.certificates} certificates, ${stat.applications} applications, ${formatCurrency(stat.revenue)}`
+).join('\n')}
+    `
+
+    const blob = new Blob([reportContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `HalalCheck_Analytics_Report_${new Date().toISOString().split('T')[0]}.txt`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const exportToExcel = () => {
+    if (!analyticsData) return
+
+    // Create CSV content
+    let csvContent = 'HalalCheck AI Analytics Report\n'
+    csvContent += `Generated on: ${new Date().toLocaleDateString()}\n\n`
+    
+    csvContent += 'SUMMARY\n'
+    csvContent += 'Metric,Value\n'
+    csvContent += `Total Applications,${analyticsData.totalApplications}\n`
+    csvContent += `Certificates Issued,${analyticsData.certificatesIssued}\n`
+    csvContent += `Revenue Generated,${analyticsData.revenueGenerated}\n`
+    csvContent += `Average Processing Time,${analyticsData.averageProcessingTime} days\n`
+    csvContent += `Client Satisfaction,${analyticsData.clientSatisfaction}/5.0\n`
+    csvContent += `Monthly Growth,${analyticsData.monthlyGrowth}%\n\n`
+
+    csvContent += 'TOP CLIENTS\n'
+    csvContent += 'Rank,Name,Company,Certificates,Revenue\n'
+    analyticsData.topClients.forEach((client, index) => {
+      csvContent += `${index + 1},${client.name},${client.company},${client.certificates},${client.revenue}\n`
+    })
+
+    csvContent += '\nMONTHLY STATS\n'
+    csvContent += 'Month,Certificates,Applications,Revenue\n'
+    analyticsData.monthlyStats.forEach(stat => {
+      csvContent += `${stat.month},${stat.certificates},${stat.applications},${stat.revenue}\n`
+    })
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `HalalCheck_Analytics_Data_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -359,24 +378,33 @@ export default function AnalyticsPage() {
               <p className="text-sm text-slate-600">Generate detailed reports for compliance and business analysis</p>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors">
+              <button 
+                onClick={exportToPDF}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 712-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span>Export PDF</span>
+                <span>Export Report</span>
               </button>
-              <button className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors">
+              <button 
+                onClick={exportToExcel}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a4 4 0 01-4-4V5a4 4 0 014-4h2m7 4v6a4 4 0 01-4 4H9.5" />
                 </svg>
-                <span>Export Excel</span>
+                <span>Export Data</span>
               </button>
-              <button className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl transition-colors">
+              <Link
+                href="/dashboard/applications"
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-xl transition-colors"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H15" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                <span>Custom Report</span>
-              </button>
+                <span>View Applications</span>
+              </Link>
             </div>
           </div>
         </div>

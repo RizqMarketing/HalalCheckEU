@@ -2,23 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface Certificate {
-  id: string
-  certificateNumber: string
-  clientName: string
-  company: string
-  productName: string
-  email: string
-  phone: string
-  issuedDate: string
-  expiryDate: string
-  status: 'active' | 'expired' | 'revoked' | 'pending'
-  analysisResult: any
-  certificateType: 'standard' | 'premium' | 'export'
-  notes: string
-  pdfUrl?: string
-}
+import { dataManager, Certificate, Application } from '@/lib/data-manager'
 
 const statusConfig = {
   active: { color: 'bg-green-100 text-green-800 border-green-200', label: 'Active' },
@@ -29,122 +13,93 @@ const statusConfig = {
 
 export default function CertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
 
   useEffect(() => {
-    loadCertificates()
+    loadData()
+    
+    // Subscribe to data changes
+    const unsubscribe = dataManager.subscribe(() => {
+      loadData()
+    })
+
+    return unsubscribe
   }, [])
 
-  const loadCertificates = () => {
-    const stored = localStorage.getItem('halalcheck_certificates')
-    if (stored) {
-      setCertificates(JSON.parse(stored))
-    } else {
-      // Initialize with sample certificates for trial users
-      const sampleCerts: Certificate[] = [
-        {
-          id: '1',
-          certificateNumber: 'HC-2024-001',
-          clientName: 'Ahmed Hassan',
-          company: 'Middle East Foods Ltd',
-          productName: 'Halal Beef Sausages',
-          email: 'ahmed@mefoods.com',
-          phone: '+31 20 123 4567',
-          issuedDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          expiryDate: new Date(Date.now() + 335 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'active',
-          certificateType: 'standard',
-          analysisResult: { overall_status: 'HALAL', confidence_score: 0.95 },
-          notes: 'Certificate issued after thorough analysis of ingredients'
-        },
-        {
-          id: '2',
-          certificateNumber: 'HC-2024-002',
-          clientName: 'Fatima Al-Zahra',
-          company: 'Istanbul Bakery Chain',
-          productName: 'Traditional Baklava Mix',
-          email: 'fatima@istanbulbakery.com',
-          phone: '+31 20 987 6543',
-          issuedDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-          expiryDate: new Date(Date.now() + 320 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'active',
-          certificateType: 'premium',
-          analysisResult: { overall_status: 'HALAL', confidence_score: 0.98 },
-          notes: 'Premium certification for export markets'
-        },
-        {
-          id: '3',
-          certificateNumber: 'HC-2023-089',
-          clientName: 'Omar Mansouri',
-          company: 'Mediterranean Spices Co',
-          productName: 'Organic Spice Blend',
-          email: 'omar@medspices.eu',
-          phone: '+31 20 345 6789',
-          issuedDate: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
-          expiryDate: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'expired',
-          certificateType: 'standard',
-          analysisResult: { overall_status: 'HALAL', confidence_score: 0.92 },
-          notes: 'Certificate requires renewal'
-        }
-      ]
-      setCertificates(sampleCerts)
-      localStorage.setItem('halalcheck_certificates', JSON.stringify(sampleCerts))
-    }
+  const loadData = () => {
+    setCertificates(dataManager.getCertificates())
+    setApplications(dataManager.getApplications())
   }
 
-  const saveCertificates = (certs: Certificate[]) => {
-    setCertificates(certs)
-    localStorage.setItem('halalcheck_certificates', JSON.stringify(certs))
-  }
+  const createCertificateFromApplication = async (appId: string) => {
+    const application = dataManager.getApplicationById(appId)
+    if (!application) return
 
-  const generateCertificateNumber = () => {
-    const year = new Date().getFullYear()
-    const sequence = certificates.length + 1
-    return `HC-${year}-${sequence.toString().padStart(3, '0')}`
-  }
-
-  const createNewCertificate = async (formData: any) => {
     setIsGeneratingPDF(true)
     
-    const newCert: Certificate = {
-      id: crypto.randomUUID(),
-      certificateNumber: generateCertificateNumber(),
-      ...formData,
-      issuedDate: new Date().toISOString(),
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'active' as const,
-      analysisResult: { overall_status: 'HALAL', confidence_score: 0.95 }
-    }
-
-    // Simulate PDF generation
+    // Simulate PDF generation time
     await new Promise(resolve => setTimeout(resolve, 2000))
-    newCert.pdfUrl = `/certificates/${newCert.certificateNumber}.pdf`
-
-    const updatedCerts = [...certificates, newCert]
-    saveCertificates(updatedCerts)
+    
+    // Generate certificate
+    const certificate = dataManager.generateCertificateFromApplication(application)
     
     setIsGeneratingPDF(false)
-    setShowCreateModal(false)
+    alert(`Certificate ${certificate.certificateNumber} generated successfully!`)
   }
 
   const downloadPDF = async (cert: Certificate) => {
-    // Simulate PDF download
+    // Simulate PDF download - in real app, this would fetch actual PDF
+    const pdfContent = generatePDFContent(cert)
+    const blob = new Blob([pdfContent], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    
     const link = document.createElement('a')
-    link.href = cert.pdfUrl || '#'
+    link.href = url
     link.download = `${cert.certificateNumber}_Halal_Certificate.pdf`
     link.click()
+    
+    URL.revokeObjectURL(url)
+  }
+
+  const generatePDFContent = (cert: Certificate): string => {
+    // Generate a mock PDF content string (in real app, use PDF library)
+    return `
+HALAL CERTIFICATE
+Certificate Number: ${cert.certificateNumber}
+Issue Date: ${new Date(cert.issuedDate).toLocaleDateString()}
+Expiry Date: ${new Date(cert.expiryDate).toLocaleDateString()}
+
+Client: ${cert.clientName}
+Company: ${cert.company}
+Product: ${cert.productName}
+
+This certifies that the above product complies with Islamic dietary laws.
+
+Status: ${cert.status.toUpperCase()}
+Type: ${cert.certificateType.toUpperCase()}
+
+Notes: ${cert.notes}
+    `
   }
 
   const revokeCertificate = (certId: string) => {
-    const updatedCerts = certificates.map(cert =>
-      cert.id === certId ? { ...cert, status: 'revoked' as const } : cert
-    )
-    saveCertificates(updatedCerts)
-    setShowModal(false)
+    if (confirm('Are you sure you want to revoke this certificate?')) {
+      dataManager.updateCertificate(certId, { status: 'revoked' })
+      setShowModal(false)
+    }
+  }
+
+  const deleteCertificate = (certId: string) => {
+    if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+      dataManager.deleteCertificate(certId)
+      setShowModal(false)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -164,9 +119,35 @@ export default function CertificatesPage() {
     }
   }
 
+  const getFilteredCertificates = () => {
+    let filtered = certificates
+
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(cert => cert.status === filterStatus)
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(cert =>
+        cert.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cert.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cert.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cert.certificateNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    return filtered
+  }
+
+  const getCertifiedApplications = () => {
+    return applications.filter(app => app.status === 'certified' && 
+      !certificates.some(cert => cert.applicationId === app.id)
+    )
+  }
+
   const activeCerts = certificates.filter(cert => cert.status === 'active').length
   const expiredCerts = certificates.filter(cert => cert.status === 'expired').length
   const revokedCerts = certificates.filter(cert => cert.status === 'revoked').length
+  const pendingCertifiable = getCertifiedApplications().length
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -214,6 +195,64 @@ export default function CertificatesPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Ready to Certify Alert */}
+        {pendingCertifiable > 0 && (
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-2xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-emerald-800">
+                    {pendingCertifiable} Application{pendingCertifiable > 1 ? 's' : ''} Ready for Certification
+                  </h3>
+                  <p className="text-emerald-700">
+                    These applications have been approved and are ready to receive certificates.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Generate Certificates
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Search and Filter */}
+        <div className="mb-8 flex items-center space-x-4">
+          <div className="flex-1">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search certificates..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+              />
+            </div>
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+            <option value="revoked">Revoked</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
+
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-slate-200/60">
@@ -293,7 +332,7 @@ export default function CertificatesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/60">
-                {certificates.map(cert => (
+                {getFilteredCertificates().map(cert => (
                   <tr key={cert.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
@@ -343,10 +382,29 @@ export default function CertificatesPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </button>
+                        <button
+                          onClick={() => deleteCertificate(cert.id)}
+                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Certificate"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
+                {getFilteredCertificates().length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                      <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p>No certificates found</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -367,7 +425,13 @@ export default function CertificatesPage() {
       {showCreateModal && (
         <CreateCertificateModal
           onClose={() => setShowCreateModal(false)}
-          onCreate={createNewCertificate}
+          applications={applications}
+          certifiedApplications={getCertifiedApplications()}
+          onCreateFromApplication={createCertificateFromApplication}
+          onCreateManual={(certData) => {
+            // Handle manual certificate creation
+            setShowCreateModal(false)
+          }}
           isGenerating={isGeneratingPDF}
         />
       )}
@@ -427,6 +491,19 @@ function CertificateModal({ certificate, onClose, onRevoke, onDownload }: {
               <label className="text-sm font-medium text-slate-700">Type</label>
               <p className="text-slate-900 capitalize">{certificate.certificateType}</p>
             </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">Issued Date</label>
+              <p className="text-slate-900">{new Date(certificate.issuedDate).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">Expiry Date</label>
+              <p className="text-slate-900">{new Date(certificate.expiryDate).toLocaleDateString()}</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">Notes</label>
+            <p className="text-slate-900 p-3 bg-slate-50 rounded-lg">{certificate.notes}</p>
           </div>
 
           <div className="flex space-x-3">
@@ -452,25 +529,15 @@ function CertificateModal({ certificate, onClose, onRevoke, onDownload }: {
 }
 
 // Create Certificate Modal Component
-function CreateCertificateModal({ onClose, onCreate, isGenerating }: {
+function CreateCertificateModal({ onClose, applications, certifiedApplications, onCreateFromApplication, onCreateManual, isGenerating }: {
   onClose: () => void
-  onCreate: (data: any) => void
+  applications: Application[]
+  certifiedApplications: Application[]
+  onCreateFromApplication: (appId: string) => void
+  onCreateManual: (data: any) => void
   isGenerating: boolean
 }) {
-  const [formData, setFormData] = useState({
-    clientName: '',
-    company: '',
-    productName: '',
-    email: '',
-    phone: '',
-    certificateType: 'standard',
-    notes: ''
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onCreate(formData)
-  }
+  const [selectedApp, setSelectedApp] = useState<string>('')
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -490,113 +557,83 @@ function CreateCertificateModal({ onClose, onCreate, isGenerating }: {
           </div>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Client Name</label>
-              <input
-                type="text"
-                value={formData.clientName}
-                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Company</label>
-              <input
-                type="text"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Product Name</label>
-            <input
-              type="text"
-              value={formData.productName}
-              onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-              className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Certificate Type</label>
-            <select
-              value={formData.certificateType}
-              onChange={(e) => setFormData({ ...formData, certificateType: e.target.value })}
-              className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option value="standard">Standard Certificate</option>
-              <option value="premium">Premium Certificate</option>
-              <option value="export">Export Certificate</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              rows={3}
-              placeholder="Additional notes for the certificate..."
-            />
-          </div>
-
-          <div className="flex space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 px-4 rounded-lg font-medium transition-colors"
-              disabled={isGenerating}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Generating PDF...</span>
+        <div className="p-6 space-y-6">
+          {certifiedApplications.length > 0 ? (
+            <>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Ready for Certification</h3>
+                <p className="text-slate-600 mb-4">Select an approved application to generate a certificate:</p>
+                
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {certifiedApplications.map(app => (
+                    <div
+                      key={app.id}
+                      onClick={() => setSelectedApp(app.id)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                        selectedApp === app.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-slate-900">{app.productName}</h4>
+                          <p className="text-sm text-slate-600">{app.company} - {app.clientName}</p>
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          {new Date(app.submittedDate).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                'Issue Certificate'
-              )}
-            </button>
-          </div>
-        </form>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 px-4 rounded-lg font-medium transition-colors"
+                  disabled={isGenerating}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => selectedApp && onCreateFromApplication(selectedApp)}
+                  disabled={!selectedApp || isGenerating}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Generating...</span>
+                    </div>
+                  ) : (
+                    'Generate Certificate'
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <svg className="w-16 h-16 mx-auto mb-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No Applications Ready</h3>
+              <p className="text-slate-600 mb-6">
+                There are no certified applications ready for certificate generation. 
+                Check the Application Pipeline to approve applications first.
+              </p>
+              <Link
+                href="/dashboard/applications"
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span>Go to Applications</span>
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
