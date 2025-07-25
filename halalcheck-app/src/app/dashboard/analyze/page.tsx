@@ -853,12 +853,10 @@ export default function AnalyzePage() {
               
               {/* Smart Reset Controls for Bulk */}
               {(bulkResults || parsedProducts.length > 0 || uploadedFiles.length > 0) && (
-                <div className="flex items-center space-x-2">
-                  <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
-                    <div className="flex items-center space-x-1">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                      <span>State saved</span>
-                    </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 text-xs text-blue-600 bg-blue-50/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-blue-200/60">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="font-medium">Analysis Saved</span>
                   </div>
                   <button
                     onClick={() => {
@@ -868,13 +866,13 @@ export default function AnalyzePage() {
                       setError(null)
                       saveState() // Update saved state
                     }}
-                    className="flex items-center space-x-1 px-3 py-1.5 text-xs bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors shadow-sm"
-                    title="Clear bulk analysis data"
+                    className="flex items-center space-x-2 px-4 py-2 text-xs font-medium bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-xl transition-all duration-200 shadow-lg shadow-slate-500/25 hover:shadow-xl hover:shadow-slate-500/30 hover:-translate-y-0.5"
+                    title="Clear bulk analysis data and start fresh"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    <span>Clear Bulk</span>
+                    <span>New Bulk Analysis</span>
                   </button>
                 </div>
               )}
@@ -927,6 +925,43 @@ export default function AnalyzePage() {
                   <div className="text-xs text-slate-500">{type.desc}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Client Assignment for Bulk Upload */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-xl border border-blue-200/60">
+              <div className="flex items-center space-x-2 mb-3">
+                <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
+                </svg>
+                <label className="text-sm font-semibold text-slate-800">
+                  Bulk Analysis Client Assignment
+                </label>
+                <div className="flex items-center space-x-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                  </svg>
+                  <span>All products will be assigned to selected client</span>
+                </div>
+              </div>
+              <select
+                value={selectedClient ? JSON.stringify(selectedClient) : ''}
+                onChange={(e) => setSelectedClient(e.target.value ? JSON.parse(e.target.value) : null)}
+                className="w-full px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200 text-sm"
+              >
+                <option value="">No client assignment (analyze without connecting to client)</option>
+                {existingClients.map((client, index) => (
+                  <option key={index} value={JSON.stringify(client)}>
+                    {client.name} - {client.company} ({client.email})
+                  </option>
+                ))}
+              </select>
+              {selectedClient && (
+                <div className="mt-2 p-2 bg-blue-100/80 rounded-lg border border-blue-200">
+                  <div className="text-xs text-blue-800 font-medium">
+                    ✅ All bulk analysis results will be automatically assigned to: <span className="font-bold">{selectedClient.name}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Enhanced Upload Area */}
