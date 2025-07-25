@@ -53,6 +53,15 @@ export default function AnalyzePage() {
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [bulkClientSearch, setBulkClientSearch] = useState('')
   const [showBulkClientDropdown, setShowBulkClientDropdown] = useState(false)
+  const [showNewClientForm, setShowNewClientForm] = useState(false)
+  const [newClientData, setNewClientData] = useState({
+    name: '',
+    company: '',
+    email: '',
+    phone: '',
+    country: ''
+  })
+  const [creatingClient, setCreatingClient] = useState(false)
   const [ingredients, setIngredients] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -138,6 +147,18 @@ export default function AnalyzePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Close new client form on escape key
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showNewClientForm) {
+        resetNewClientForm()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscapeKey)
+    return () => document.removeEventListener('keydown', handleEscapeKey)
+  }, [showNewClientForm])
+
   // Client search filtering functions
   const filteredClients = existingClients.filter(client => 
     client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
@@ -157,6 +178,63 @@ export default function AnalyzePage() {
     setBulkClientSearch(client.name)
     setShowClientDropdown(false)
     setShowBulkClientDropdown(false)
+  }
+
+  // Client creation functions
+  const handleCreateNewClient = async () => {
+    if (!newClientData.name || !newClientData.company || !newClientData.email) {
+      alert('Please fill in all required fields (Name, Company, Email)')
+      return
+    }
+
+    setCreatingClient(true)
+    try {
+      // Create new client
+      const newClient = {
+        name: newClientData.name,
+        company: newClientData.company,
+        email: newClientData.email,
+        phone: newClientData.phone || '',
+        country: newClientData.country || ''
+      }
+
+      // Add to existing clients list immediately
+      setExistingClients(prev => [...prev, newClient])
+      
+      // Select the new client
+      setSelectedClient(newClient)
+      setClientSearch(newClient.name)
+      setBulkClientSearch(newClient.name)
+      
+      // Reset form and close
+      setNewClientData({
+        name: '',
+        company: '',
+        email: '',
+        phone: '',
+        country: ''
+      })
+      setShowNewClientForm(false)
+      setShowClientDropdown(false)
+      setShowBulkClientDropdown(false)
+      
+    } catch (error) {
+      console.error('Error creating client:', error)
+      alert('Failed to create client. Please try again.')
+    } finally {
+      setCreatingClient(false)
+    }
+  }
+
+  const resetNewClientForm = () => {
+    setNewClientData({
+      name: '',
+      company: '',
+      email: '',
+      phone: '',
+      country: ''
+    })
+    setShowNewClientForm(false)
   }
 
   // Load existing clients and restore state on component mount
@@ -752,7 +830,7 @@ export default function AnalyzePage() {
                   </svg>
                 </div>
                 
-                {showClientDropdown && filteredClients.length > 0 && (
+                {showClientDropdown && (
                   <div className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg">
                     <div className="p-2">
                       <div 
@@ -765,6 +843,22 @@ export default function AnalyzePage() {
                       >
                         No client assignment
                       </div>
+                      
+                      <div 
+                        onClick={() => {
+                          setShowNewClientForm(true)
+                          setShowClientDropdown(false)
+                        }}
+                        className="px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg cursor-pointer border-t border-slate-200 flex items-center space-x-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span className="font-medium">Create New Client</span>
+                      </div>
+                      
+                      {filteredClients.length > 0 && <div className="border-t border-slate-200 my-2"></div>}
+                      
                       {filteredClients.map((client, index) => (
                         <div
                           key={index}
@@ -775,6 +869,12 @@ export default function AnalyzePage() {
                           <div className="text-xs text-slate-500">{client.company} • {client.email}</div>
                         </div>
                       ))}
+                      
+                      {filteredClients.length === 0 && clientSearch && (
+                        <div className="px-3 py-2 text-sm text-slate-500 text-center">
+                          No clients found for "{clientSearch}"
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1038,7 +1138,7 @@ export default function AnalyzePage() {
                   </svg>
                 </div>
                 
-                {showBulkClientDropdown && filteredBulkClients.length > 0 && (
+                {showBulkClientDropdown && (
                   <div className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-white border border-blue-200 rounded-xl shadow-lg">
                     <div className="p-2">
                       <div 
@@ -1051,6 +1151,22 @@ export default function AnalyzePage() {
                       >
                         No client assignment
                       </div>
+                      
+                      <div 
+                        onClick={() => {
+                          setShowNewClientForm(true)
+                          setShowBulkClientDropdown(false)
+                        }}
+                        className="px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg cursor-pointer border-t border-slate-200 flex items-center space-x-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span className="font-medium">Create New Client</span>
+                      </div>
+                      
+                      {filteredBulkClients.length > 0 && <div className="border-t border-slate-200 my-2"></div>}
+                      
                       {filteredBulkClients.map((client, index) => (
                         <div
                           key={index}
@@ -1061,6 +1177,12 @@ export default function AnalyzePage() {
                           <div className="text-xs text-slate-500">{client.company} • {client.email}</div>
                         </div>
                       ))}
+                      
+                      {filteredBulkClients.length === 0 && bulkClientSearch && (
+                        <div className="px-3 py-2 text-sm text-slate-500 text-center">
+                          No clients found for "{bulkClientSearch}"
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1771,6 +1893,145 @@ export default function AnalyzePage() {
           </div>
         </div>
       </div>
+
+      {/* New Client Creation Modal */}
+      {showNewClientForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-900">Create New Client</h2>
+                <button
+                  onClick={resetNewClientForm}
+                  className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-slate-600 mt-2">
+                Add a new client and assign them to your analysis results instantly.
+              </p>
+            </div>
+
+            <div className="p-6">
+              <form onSubmit={(e) => { e.preventDefault(); handleCreateNewClient(); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Client Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newClientData.name}
+                    onChange={(e) => setNewClientData({ ...newClientData, name: e.target.value })}
+                    placeholder="e.g., Ahmed Hassan"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Company Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newClientData.company}
+                    onChange={(e) => setNewClientData({ ...newClientData, company: e.target.value })}
+                    placeholder="e.g., Halal Foods Ltd"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    value={newClientData.email}
+                    onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
+                    placeholder="e.g., ahmed@halalfoods.com"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={newClientData.phone}
+                      onChange={(e) => setNewClientData({ ...newClientData, phone: e.target.value })}
+                      placeholder="e.g., +31 20 123 4567"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      value={newClientData.country}
+                      onChange={(e) => setNewClientData({ ...newClientData, country: e.target.value })}
+                      placeholder="e.g., Netherlands"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="font-medium text-green-900 mb-1">Quick Assignment</h4>
+                      <p className="text-sm text-green-800">
+                        This client will be automatically selected for your current analysis and future bulk uploads.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={resetNewClientForm}
+                    className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 px-4 rounded-xl font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingClient || !newClientData.name || !newClientData.company || !newClientData.email}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-slate-400 disabled:to-slate-500 text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 flex items-center justify-center"
+                  >
+                    {creatingClient ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creating...
+                      </>
+                    ) : (
+                      'Create & Select Client'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
