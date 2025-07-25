@@ -49,6 +49,10 @@ export default function AnalyzePage() {
   const [productName, setProductName] = useState('')
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [existingClients, setExistingClients] = useState<any[]>([])
+  const [clientSearch, setClientSearch] = useState('')
+  const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const [bulkClientSearch, setBulkClientSearch] = useState('')
+  const [showBulkClientDropdown, setShowBulkClientDropdown] = useState(false)
   const [ingredients, setIngredients] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -119,6 +123,41 @@ export default function AnalyzePage() {
     setUploadedFiles([])
     setError(null)
   }, [])
+
+  // Click outside handler to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('.client-search-container')) {
+        setShowClientDropdown(false)
+        setShowBulkClientDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Client search filtering functions
+  const filteredClients = existingClients.filter(client => 
+    client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    client.company.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    client.email.toLowerCase().includes(clientSearch.toLowerCase())
+  )
+
+  const filteredBulkClients = existingClients.filter(client => 
+    client.name.toLowerCase().includes(bulkClientSearch.toLowerCase()) ||
+    client.company.toLowerCase().includes(bulkClientSearch.toLowerCase()) ||
+    client.email.toLowerCase().includes(bulkClientSearch.toLowerCase())
+  )
+
+  const handleClientSelect = (client: any) => {
+    setSelectedClient(client)
+    setClientSearch(client.name)
+    setBulkClientSearch(client.name)
+    setShowClientDropdown(false)
+    setShowBulkClientDropdown(false)
+  }
 
   // Load existing clients and restore state on component mount
   useEffect(() => {
@@ -692,18 +731,54 @@ export default function AnalyzePage() {
                   Auto-connect results to client
                 </span>
               </div>
-              <select
-                value={selectedClient ? JSON.stringify(selectedClient) : ''}
-                onChange={(e) => setSelectedClient(e.target.value ? JSON.parse(e.target.value) : null)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
-              >
-                <option value="">Select existing client or leave blank for new</option>
-                {existingClients.map((client, index) => (
-                  <option key={index} value={JSON.stringify(client)}>
-                    {client.name} - {client.company} ({client.email})
-                  </option>
-                ))}
-              </select>
+              <div className="relative client-search-container">
+                <input
+                  type="text"
+                  value={selectedClient ? selectedClient.name : clientSearch}
+                  onChange={(e) => {
+                    setClientSearch(e.target.value)
+                    setShowClientDropdown(true)
+                    if (!e.target.value) {
+                      setSelectedClient(null)
+                    }
+                  }}
+                  onFocus={() => setShowClientDropdown(true)}
+                  placeholder="Search existing clients or leave blank for new"
+                  className="w-full px-4 py-3 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                
+                {showClientDropdown && filteredClients.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg">
+                    <div className="p-2">
+                      <div 
+                        onClick={() => {
+                          setSelectedClient(null)
+                          setClientSearch('')
+                          setShowClientDropdown(false)
+                        }}
+                        className="px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                      >
+                        No client assignment
+                      </div>
+                      {filteredClients.map((client, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleClientSelect(client)}
+                          className="px-3 py-2 text-sm hover:bg-blue-50 rounded-lg cursor-pointer border-b border-slate-100 last:border-b-0"
+                        >
+                          <div className="font-medium text-slate-900">{client.name}</div>
+                          <div className="text-xs text-slate-500">{client.company} • {client.email}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               {selectedClient && (
                 <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center space-x-2 text-sm">
@@ -942,18 +1017,54 @@ export default function AnalyzePage() {
                   <span>All products will be assigned to selected client</span>
                 </div>
               </div>
-              <select
-                value={selectedClient ? JSON.stringify(selectedClient) : ''}
-                onChange={(e) => setSelectedClient(e.target.value ? JSON.parse(e.target.value) : null)}
-                className="w-full px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200 text-sm"
-              >
-                <option value="">No client assignment (analyze without connecting to client)</option>
-                {existingClients.map((client, index) => (
-                  <option key={index} value={JSON.stringify(client)}>
-                    {client.name} - {client.company} ({client.email})
-                  </option>
-                ))}
-              </select>
+              <div className="relative client-search-container">
+                <input
+                  type="text"
+                  value={selectedClient ? selectedClient.name : bulkClientSearch}
+                  onChange={(e) => {
+                    setBulkClientSearch(e.target.value)
+                    setShowBulkClientDropdown(true)
+                    if (!e.target.value) {
+                      setSelectedClient(null)
+                    }
+                  }}
+                  onFocus={() => setShowBulkClientDropdown(true)}
+                  placeholder="Search clients for bulk assignment or leave blank"
+                  className="w-full px-4 py-3 pr-10 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200 text-sm"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                
+                {showBulkClientDropdown && filteredBulkClients.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-white border border-blue-200 rounded-xl shadow-lg">
+                    <div className="p-2">
+                      <div 
+                        onClick={() => {
+                          setSelectedClient(null)
+                          setBulkClientSearch('')
+                          setShowBulkClientDropdown(false)
+                        }}
+                        className="px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                      >
+                        No client assignment
+                      </div>
+                      {filteredBulkClients.map((client, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleClientSelect(client)}
+                          className="px-3 py-2 text-sm hover:bg-blue-50 rounded-lg cursor-pointer border-b border-slate-100 last:border-b-0"
+                        >
+                          <div className="font-medium text-slate-900">{client.name}</div>
+                          <div className="text-xs text-slate-500">{client.company} • {client.email}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               {selectedClient && (
                 <div className="mt-2 p-2 bg-blue-100/80 rounded-lg border border-blue-200">
                   <div className="text-xs text-blue-800 font-medium">
@@ -1019,12 +1130,6 @@ export default function AnalyzePage() {
                 </div>
               )}
 
-              <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="text-xs text-slate-600">
-                  <div className="font-semibold mb-1">Expected format:</div>
-                  <div>Documents should contain product names and ingredient lists in columns or structured text</div>
-                </div>
-              </div>
             </div>
 
             {/* Action Buttons */}
