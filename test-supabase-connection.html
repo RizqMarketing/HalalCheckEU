@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HalalCheck AI - Supabase Connection Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2d5a27;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        button {
+            background: #2d5a27;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1e3f1c;
+        }
+        .credentials {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕌 HalalCheck AI - Database Test</h1>
+        
+        <div class="credentials">
+            <h3>Enter Your Supabase Credentials</h3>
+            <input type="text" id="supabase-url" placeholder="https://your-project-id.supabase.co" />
+            <input type="text" id="supabase-key" placeholder="Your anon/public key" />
+            <button onclick="saveCredentials()">Save Credentials</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔌 Connection Test</h3>
+            <button onclick="testConnection()">Test Database Connection</button>
+            <div id="connection-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Tables Test</h3>
+            <button onclick="testTables()">Check All Tables</button>
+            <div id="tables-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 Authentication Test</h3>
+            <button onclick="testAuth()">Test Auth Functions</button>
+            <div id="auth-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📁 Storage Test</h3>
+            <button onclick="testStorage()">Test File Storage</button>
+            <div id="storage-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>⚙️ Functions Test</h3>
+            <button onclick="testFunctions()">Test Database Functions</button>
+            <div id="functions-result"></div>
+        </div>
+    </div>
+
+    <script>
+        let supabase = null;
+
+        function saveCredentials() {
+            const url = document.getElementById('supabase-url').value;
+            const key = document.getElementById('supabase-key').value;
+            
+            if (!url || !key) {
+                alert('Please enter both URL and key!');
+                return;
+            }
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                alert('Credentials saved! You can now run tests.');
+                
+                // Store in localStorage for convenience
+                localStorage.setItem('supabase-url', url);
+                localStorage.setItem('supabase-key', key);
+            } catch (error) {
+                alert('Invalid credentials: ' + error.message);
+            }
+        }
+
+        // Load saved credentials on page load
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('supabase-url');
+            const savedKey = localStorage.getItem('supabase-key');
+            
+            if (savedUrl) document.getElementById('supabase-url').value = savedUrl;
+            if (savedKey) document.getElementById('supabase-key').value = savedKey;
+            
+            if (savedUrl && savedKey) {
+                supabase = window.supabase.createClient(savedUrl, savedKey);
+            }
+        }
+
+        async function testConnection() {
+            if (!supabase) {
+                showResult('connection-result', 'Please save credentials first!', 'error');
+                return;
+            }
+
+            showResult('connection-result', 'Testing connection...', 'loading');
+
+            try {
+                const { data, error } = await supabase
+                    .from('user_profiles')
+                    .select('count', { count: 'exact', head: true });
+
+                if (error) {
+                    showResult('connection-result', 'Connection failed: ' + error.message, 'error');
+                } else {
+                    showResult('connection-result', 'Connection successful! Database is accessible.', 'success');
+                }
+            } catch (err) {
+                showResult('connection-result', 'Connection error: ' + err.message, 'error');
+            }
+        }
+
+        async function testTables() {
+            if (!supabase) {
+                showResult('tables-result', 'Please save credentials first!', 'error');
+                return;
+            }
+
+            showResult('tables-result', 'Checking tables...', 'loading');
+
+            const tables = [
+                'user_profiles',
+                'analyses', 
+                'uploaded_files',
+                'usage_logs',
+                'notifications',
+                'api_keys',
+                'organizations',
+                'organization_members'
+            ];
+
+            let results = [];
+
+            for (const table of tables) {
+                try {
+                    const { error } = await supabase
+                        .from(table)
+                        .select('count', { count: 'exact', head: true });
+
+                    if (error) {
+                        results.push(`❌ ${table}: ${error.message}`);
+                    } else {
+                        results.push(`✅ ${table}: OK`);
+                    }
+                } catch (err) {
+                    results.push(`❌ ${table}: ${err.message}`);
+                }
+            }
+
+            showResult('tables-result', results.join('<br>'), 'success');
+        }
+
+        async function testAuth() {
+            if (!supabase) {
+                showResult('auth-result', 'Please save credentials first!', 'error');
+                return;
+            }
+
+            showResult('auth-result', 'Testing authentication...', 'loading');
+
+            try {
+                // Test getting current session
+                const { data: session } = await supabase.auth.getSession();
+                
+                let result = `Current session: ${session.session ? 'Logged in' : 'Not logged in'}<br>`;
+                
+                // Test auth configuration
+                const { data: user } = await supabase.auth.getUser();
+                result += `User check: ${user.user ? 'User found' : 'No user'}<br>`;
+                
+                result += '✅ Authentication system is working!';
+                
+                showResult('auth-result', result, 'success');
+            } catch (err) {
+                showResult('auth-result', 'Auth error: ' + err.message, 'error');
+            }
+        }
+
+        async function testStorage() {
+            if (!supabase) {
+                showResult('storage-result', 'Please save credentials first!', 'error');
+                return;
+            }
+
+            showResult('storage-result', 'Testing storage...', 'loading');
+
+            try {
+                // List buckets
+                const { data: buckets, error } = await supabase.storage.listBuckets();
+                
+                if (error) {
+                    showResult('storage-result', 'Storage error: ' + error.message, 'error');
+                } else {
+                    const bucketNames = buckets.map(b => b.name).join(', ');
+                    showResult('storage-result', `✅ Storage accessible! Buckets: ${bucketNames || 'None'}`, 'success');
+                }
+            } catch (err) {
+                showResult('storage-result', 'Storage error: ' + err.message, 'error');
+            }
+        }
+
+        async function testFunctions() {
+            if (!supabase) {
+                showResult('functions-result', 'Please save credentials first!', 'error');
+                return;
+            }
+
+            showResult('functions-result', 'Testing database functions...', 'loading');
+
+            try {
+                // Test the trial check function (this will work even without a logged-in user)
+                const { data, error } = await supabase.rpc('is_trial_active', { 
+                    user_id: '00000000-0000-0000-0000-000000000000' 
+                });
+
+                if (error) {
+                    showResult('functions-result', 'Functions error: ' + error.message, 'error');
+                } else {
+                    showResult('functions-result', '✅ Database functions are working! Trial check completed.', 'success');
+                }
+            } catch (err) {
+                showResult('functions-result', 'Functions error: ' + err.message, 'error');
+            }
+        }
+
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `test-section ${type}`;
+        }
+    </script>
+</body>
+</html>

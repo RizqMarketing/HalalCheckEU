@@ -1,0 +1,1 @@
+# DISABLED - This directory is deprecated. Use halalcheck-app instead.

@@ -10,7 +10,6 @@ import { dataManager } from '@/lib/data-manager'
 interface AnalysisResult {
   product: string
   overall: string
-  confidence: number
   ingredients: Array<{
     name: string
     status: string
@@ -418,7 +417,7 @@ export default function AnalyzePage() {
         priority: result.overall === 'PROHIBITED' ? 'high' as const : 'normal' as const,
         documents: [`${result.product}_analysis.pdf`],
         analysisResult: result,
-        notes: `Automatic analysis: ${result.overall}. Confidence: ${result.confidence}%${selectedClient ? ' (Pre-assigned to ' + selectedClient.name + ')' : ''}`,
+        notes: `Automatic analysis: ${result.overall}${selectedClient ? ' (Pre-assigned to ' + selectedClient.name + ')' : ''}`,
         submittedDate: new Date().toISOString()
       }
 
@@ -498,7 +497,7 @@ export default function AnalyzePage() {
           priority: result.overall === 'PROHIBITED' ? 'high' as const : 'normal' as const,
           documents: [`${result.product}_bulk_analysis.pdf`],
           analysisResult: result,
-          notes: `Bulk analysis: ${result.overall}. Confidence: ${result.confidence}%${selectedClient ? ' (Pre-assigned to ' + selectedClient.name + ')' : ''}`,
+          notes: `Bulk analysis: ${result.overall}${selectedClient ? ' (Pre-assigned to ' + selectedClient.name + ')' : ''}`,
           submittedDate: new Date().toISOString()
         }
 
@@ -1169,11 +1168,11 @@ export default function AnalyzePage() {
                 </div>
                 <div className="text-slate-600 text-sm">Islamic Ruling</div>
               </div>
-              <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200">
-                <div className="text-3xl font-bold text-blue-600 mb-2">
-                  {Math.round(analysisResult.confidence)}%
+              <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl border border-green-200">
+                <div className="text-2xl font-bold text-green-600 mb-2">
+                  {analysisResult.ingredients.length}
                 </div>
-                <div className="text-slate-600 text-sm">Confidence Level</div>
+                <div className="text-slate-600 text-sm">Ingredients Analyzed</div>
               </div>
               <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200">
                 <div className="text-3xl font-bold text-purple-600 mb-2">
@@ -1503,7 +1502,7 @@ export default function AnalyzePage() {
                       </div>
                       <div className="flex items-center space-x-4">
                         <span className="text-sm text-slate-600">
-                          Confidence: {Math.round(result.confidence)}%
+                          {result.ingredients.length} ingredients analyzed
                         </span>
                         <button className="flex items-center space-x-1 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors">
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
