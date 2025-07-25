@@ -20,9 +20,14 @@ export default function ApplicationsPage() {
   const [showNewAppModal, setShowNewAppModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [customColumns, setCustomColumns] = useState<Array<{id: string, title: string, icon: JSX.Element}>>([])
+  const [showColumnManager, setShowColumnManager] = useState(false)
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
+  const [editingColumnTitle, setEditingColumnTitle] = useState('')
 
   useEffect(() => {
     loadApplications()
+    loadCustomColumns()
     
     // Subscribe to data changes
     const unsubscribe = dataManager.subscribe(() => {
@@ -107,27 +112,97 @@ export default function ApplicationsPage() {
     }
   }
 
-  const columns: { status: Application['status']; title: string; icon: JSX.Element }[] = [
+  // Custom columns management
+  const loadCustomColumns = () => {
+    const saved = localStorage.getItem('pipeline-custom-columns')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setCustomColumns(parsed.map((col: any) => ({
+          ...col,
+          icon: <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+        })))
+      } catch (e) {
+        console.error('Failed to load custom columns:', e)
+      }
+    }
+  }
+
+  const saveCustomColumns = (columns: Array<{id: string, title: string}>) => {
+    localStorage.setItem('pipeline-custom-columns', JSON.stringify(columns.map(col => ({id: col.id, title: col.title}))))
+  }
+
+  const addCustomColumn = () => {
+    const newColumn = {
+      id: `custom-${Date.now()}`,
+      title: 'New Stage',
+      icon: <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+    }
+    const updated = [...customColumns, newColumn]
+    setCustomColumns(updated)
+    saveCustomColumns(updated)
+  }
+
+  const removeCustomColumn = (columnId: string) => {
+    if (confirm('Are you sure you want to remove this column? All applications in this column will be moved to "New Applications".')) {
+      // Move all applications in this column to 'new' status
+      applications.forEach(app => {
+        if (app.status === columnId as any) {
+          dataManager.updateApplication(app.id, { status: 'new' })
+        }
+      })
+      
+      const updated = customColumns.filter(col => col.id !== columnId)
+      setCustomColumns(updated)
+      saveCustomColumns(updated)
+    }
+  }
+
+  const updateColumnTitle = (columnId: string, newTitle: string) => {
+    const updated = customColumns.map(col => 
+      col.id === columnId ? { ...col, title: newTitle } : col
+    )
+    setCustomColumns(updated)
+    saveCustomColumns(updated)
+    setEditingColumnId(null)
+    setEditingColumnTitle('')
+  }
+
+  const startEditingColumn = (columnId: string, currentTitle: string) => {
+    setEditingColumnId(columnId)
+    setEditingColumnTitle(currentTitle)
+  }
+
+  const defaultColumns: { status: Application['status']; title: string; icon: JSX.Element; isDefault: boolean }[] = [
     { 
       status: 'new', 
       title: 'New Applications', 
-      icon: <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+      icon: <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+      isDefault: true
     },
     { 
       status: 'reviewing', 
       title: 'Under Review', 
-      icon: <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      icon: <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+      isDefault: true
     },
     { 
       status: 'approved', 
       title: 'Approved', 
-      icon: <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      icon: <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+      isDefault: true
     },
     { 
       status: 'certified', 
       title: 'Certified', 
-      icon: <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+      icon: <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
+      isDefault: true
     }
+  ]
+
+  const allColumns = [
+    ...defaultColumns,
+    ...customColumns.map(col => ({ ...col, status: col.id as Application['status'], isDefault: false }))
   ]
 
   return (
@@ -152,6 +227,15 @@ export default function ApplicationsPage() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              <button 
+                onClick={() => setShowColumnManager(true)}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-500/25"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                <span>Manage Pipeline</span>
+              </button>
               <button 
                 onClick={() => setShowNewAppModal(true)}
                 className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg shadow-blue-500/25"
@@ -208,7 +292,7 @@ export default function ApplicationsPage() {
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {columns.map(column => (
+          {allColumns.map(column => (
             <div key={column.status} className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-slate-200/60">
               <div className="flex items-center justify-between">
                 <div>
@@ -224,8 +308,8 @@ export default function ApplicationsPage() {
         </div>
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {columns.map(column => (
+        <div className={`grid gap-6 ${allColumns.length <= 4 ? 'grid-cols-1 lg:grid-cols-4' : allColumns.length <= 6 ? 'grid-cols-1 lg:grid-cols-3 xl:grid-cols-6' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6'}`}>
+          {allColumns.map(column => (
             <div
               key={column.status}
               className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden"
@@ -233,12 +317,42 @@ export default function ApplicationsPage() {
               onDrop={(e) => handleDrop(e, column.status)}
             >
               <div className="p-4 border-b border-slate-200/60 bg-slate-50/50">
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center justify-center w-6 h-6">{column.icon}</div>
-                  <h3 className="font-bold text-slate-900">{column.title}</h3>
-                  <span className="text-sm text-slate-500">
-                    ({getApplicationsByStatus(column.status).length})
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center justify-center w-6 h-6">{column.icon}</div>
+                    {editingColumnId === column.status ? (
+                      <input
+                        type="text"
+                        value={editingColumnTitle}
+                        onChange={(e) => setEditingColumnTitle(e.target.value)}
+                        onBlur={() => updateColumnTitle(column.status, editingColumnTitle)}
+                        onKeyPress={(e) => e.key === 'Enter' && updateColumnTitle(column.status, editingColumnTitle)}
+                        className="text-sm font-bold bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      />
+                    ) : (
+                      <h3 
+                        className={`font-bold text-slate-900 ${!column.isDefault ? 'cursor-pointer hover:text-blue-600' : ''}`}
+                        onClick={() => !column.isDefault && startEditingColumn(column.status, column.title)}
+                      >
+                        {column.title}
+                      </h3>
+                    )}
+                    <span className="text-sm text-slate-500">
+                      ({getApplicationsByStatus(column.status).length})
+                    </span>
+                  </div>
+                  {!column.isDefault && (
+                    <button
+                      onClick={() => removeCustomColumn(column.status)}
+                      className="text-red-500 hover:text-red-700 transition-colors opacity-60 hover:opacity-100"
+                      title="Remove column"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -333,6 +447,147 @@ export default function ApplicationsPage() {
             setShowNewAppModal(false)
           }}
         />
+      )}
+
+      {/* Pipeline Management Modal */}
+      {showColumnManager && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-900">Manage Pipeline Stages</h2>
+                <button
+                  onClick={() => setShowColumnManager(false)}
+                  className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-slate-600 mt-2">
+                Customize your workflow by adding, removing, or renaming pipeline stages.
+              </p>
+            </div>
+
+            <div className="p-6">
+              {/* Default Columns */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Default Stages
+                </h3>
+                <div className="grid gap-3">
+                  {defaultColumns.map(column => (
+                    <div key={column.status} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-white rounded-lg shadow-sm">
+                          {column.icon}
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900">{column.title}</div>
+                          <div className="text-sm text-slate-500">Built-in stage</div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        {getApplicationsByStatus(column.status).length} applications
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Columns */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    Custom Stages
+                  </h3>
+                  <button
+                    onClick={addCustomColumn}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-500/25"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Add Stage</span>
+                  </button>
+                </div>
+                
+                {customColumns.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <p className="text-sm">No custom stages yet. Add one to customize your workflow!</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {customColumns.map(column => (
+                      <div key={column.id} className="flex items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-200">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center justify-center w-8 h-8 bg-white rounded-lg shadow-sm">
+                            {column.icon}
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-900">{column.title}</div>
+                            <div className="text-sm text-purple-600">Custom stage • Click name to edit</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-sm text-slate-500">
+                            {getApplicationsByStatus(column.id as any).length} applications
+                          </div>
+                          <button
+                            onClick={() => removeCustomColumn(column.id)}
+                            className="text-red-500 hover:text-red-700 transition-colors p-1 hover:bg-red-50 rounded-lg"
+                            title="Remove stage"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <div className="flex items-start space-x-3">
+                  <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="font-medium text-blue-900 mb-1">How to use custom stages:</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Click the stage name in the pipeline to rename it</li>
+                      <li>• Drag applications between stages to update their status</li>
+                      <li>• Custom stages appear as purple columns in your pipeline</li>
+                      <li>• Removing a stage moves all applications back to "New Applications"</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-200">
+              <button
+                onClick={() => setShowColumnManager(false)}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-xl font-medium transition-all duration-200"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
