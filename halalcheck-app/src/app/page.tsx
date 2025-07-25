@@ -380,11 +380,11 @@ export default function Home() {
               </p>
             </div>
             <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-3">
-              {/* Starter Plan */}
+              {/* Professional Plan */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900">Starter</h3>
+                <h3 className="text-lg font-medium text-gray-900">Professional</h3>
                 <p className="mt-4">
-                  <span className="text-4xl font-extrabold text-gray-900">€99</span>
+                  <span className="text-4xl font-extrabold text-gray-900">€299</span>
                   <span className="text-base font-medium text-gray-500">/month</span>
                 </p>
                 <ul className="mt-6 space-y-4">
@@ -394,7 +394,11 @@ export default function Home() {
                   </li>
                   <li className="flex">
                     <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
-                    <span className="ml-3 text-gray-500">PDF reports</span>
+                    <span className="ml-3 text-gray-500">Complete workflow automation</span>
+                  </li>
+                  <li className="flex">
+                    <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
+                    <span className="ml-3 text-gray-500">Professional PDF reports</span>
                   </li>
                   <li className="flex">
                     <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
@@ -403,16 +407,16 @@ export default function Home() {
                 </ul>
               </div>
 
-              {/* Professional Plan */}
+              {/* Enterprise Plan */}
               <div className="bg-green-50 rounded-lg shadow-sm border-2 border-green-200 p-6 relative">
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-green-500 text-white px-3 py-1 text-sm font-medium rounded-full">
                     Most Popular
                   </span>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">Professional</h3>
+                <h3 className="text-lg font-medium text-gray-900">Enterprise</h3>
                 <p className="mt-4">
-                  <span className="text-4xl font-extrabold text-gray-900">€299</span>
+                  <span className="text-4xl font-extrabold text-gray-900">€799</span>
                   <span className="text-base font-medium text-gray-500">/month</span>
                 </p>
                 <ul className="mt-6 space-y-4">
@@ -422,20 +426,24 @@ export default function Home() {
                   </li>
                   <li className="flex">
                     <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
-                    <span className="ml-3 text-gray-500">API access</span>
+                    <span className="ml-3 text-gray-500">API access & integrations</span>
                   </li>
                   <li className="flex">
                     <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
-                    <span className="ml-3 text-gray-500">Priority support</span>
+                    <span className="ml-3 text-gray-500">Advanced analytics & exports</span>
+                  </li>
+                  <li className="flex">
+                    <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
+                    <span className="ml-3 text-gray-500">Priority support & training</span>
                   </li>
                 </ul>
               </div>
 
-              {/* Enterprise Plan */}
+              {/* Enterprise Plus Plan */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900">Enterprise</h3>
+                <h3 className="text-lg font-medium text-gray-900">Enterprise Plus</h3>
                 <p className="mt-4">
-                  <span className="text-4xl font-extrabold text-gray-900">€899</span>
+                  <span className="text-4xl font-extrabold text-gray-900">€1,999</span>
                   <span className="text-base font-medium text-gray-500">/month</span>
                 </p>
                 <ul className="mt-6 space-y-4">
@@ -445,11 +453,15 @@ export default function Home() {
                   </li>
                   <li className="flex">
                     <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
-                    <span className="ml-3 text-gray-500">Custom features</span>
+                    <span className="ml-3 text-gray-500">Custom integrations & features</span>
                   </li>
                   <li className="flex">
                     <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
-                    <span className="ml-3 text-gray-500">Phone support</span>
+                    <span className="ml-3 text-gray-500">White-label branding options</span>
+                  </li>
+                  <li className="flex">
+                    <CheckIcon className="flex-shrink-0 w-6 h-6 text-green-500" />
+                    <span className="ml-3 text-gray-500">Dedicated account manager</span>
                   </li>
                 </ul>
               </div>
