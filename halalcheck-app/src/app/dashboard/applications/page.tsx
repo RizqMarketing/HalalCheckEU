@@ -4,16 +4,12 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { dataManager, Application } from '@/lib/data-manager'
 import { trackPipeline, trackPageView, trackFeatureUsage } from '@/lib/analytics-tracker'
-
-const statusConfig = {
-  new: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'New Application' },
-  reviewing: { color: 'bg-amber-100 text-amber-800 border-amber-200', label: 'Under Review' },
-  approved: { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', label: 'Approved' },
-  certified: { color: 'bg-green-100 text-green-800 border-green-200', label: 'Certified' },
-  rejected: { color: 'bg-red-100 text-red-800 border-red-200', label: 'Rejected' }
-}
+import { useOrganization, useOrganizationText } from '@/contexts/organization-context'
 
 export default function ApplicationsPage() {
+  const { stages, terminology, config } = useOrganization()
+  const orgText = useOrganizationText()
+  
   const [applications, setApplications] = useState<Application[]>([])
   const [draggedApp, setDraggedApp] = useState<string | null>(null)
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
@@ -25,6 +21,15 @@ export default function ApplicationsPage() {
   const [showColumnManager, setShowColumnManager] = useState(false)
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const [editingColumnTitle, setEditingColumnTitle] = useState('')
+
+  // Create status config from organization stages
+  const statusConfig = stages.reduce((acc, stage) => {
+    acc[stage.id] = {
+      color: stage.color,
+      label: stage.title
+    }
+    return acc
+  }, {} as Record<string, { color: string; label: string }>)
 
   useEffect(() => {
     // Track page view
@@ -227,32 +232,15 @@ export default function ApplicationsPage() {
     setEditingColumnTitle(currentTitle)
   }
 
-  const defaultColumns: { status: Application['status']; title: string; icon: JSX.Element; isDefault: boolean }[] = [
-    { 
-      status: 'new', 
-      title: 'New Applications', 
-      icon: <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-      isDefault: true
-    },
-    { 
-      status: 'reviewing', 
-      title: 'Under Review', 
-      icon: <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
-      isDefault: true
-    },
-    { 
-      status: 'approved', 
-      title: 'Approved', 
-      icon: <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-      isDefault: true
-    },
-    { 
-      status: 'certified', 
-      title: 'Certified', 
-      icon: <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
-      isDefault: true
-    }
-  ]
+  // Create default columns from organization stages
+  const defaultColumns: { status: Application['status']; title: string; icon: JSX.Element; isDefault: boolean }[] = stages.map(stage => ({
+    status: stage.id as Application['status'],
+    title: stage.title,
+    icon: typeof stage.icon === 'string' && stage.icon.includes('svg') ? 
+      <div dangerouslySetInnerHTML={{ __html: stage.icon }} /> :
+      <div className="text-lg">{stage.icon}</div>,
+    isDefault: true
+  }))
 
   const allColumns = [
     ...defaultColumns,
@@ -273,10 +261,10 @@ export default function ApplicationsPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-blue-800 bg-clip-text text-transparent">
-                  Application Pipeline
+                  {config.pipelineTitle}
                 </h1>
                 <p className="text-slate-600 text-sm">
-                  Certification workflow management
+                  {terminology.workflowName} management
                 </p>
               </div>
             </div>

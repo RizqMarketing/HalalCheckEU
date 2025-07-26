@@ -6,16 +6,16 @@ import { useOrganization, useOrganizationText, useOrganizationStyling } from '@/
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true)
-  const { config, terminology, isLoading: orgLoading } = useOrganization()
+  const { config, terminology, isLoading: orgLoading, organizationType } = useOrganization()
   const orgText = useOrganizationText()
   const orgStyling = useOrganizationStyling()
 
   useEffect(() => {
-    console.log('Dashboard: loading state changed', { loading, orgLoading, config })
+    console.log('Dashboard: organization changed', { organizationType, config })
     setLoading(false)
-  }, [orgLoading])
+  }, [orgLoading, organizationType])
 
-  console.log('Dashboard render:', { loading, orgLoading, configType: config?.type })
+  console.log('Dashboard render:', { loading, orgLoading, configType: config?.type, organizationType })
 
   if (loading || orgLoading) {
     return (

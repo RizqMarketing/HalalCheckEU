@@ -22,14 +22,22 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   // Enhanced setOrganizationType that updates localStorage and DataManager
   const setOrganizationType = (newType: OrganizationType) => {
-    console.log('Setting organization type to:', newType)
+    console.log('OrganizationContext: Setting organization type from', organizationType, 'to:', newType)
+    
+    // Update state first
     setOrganizationTypeState(newType)
-    localStorage.setItem('user-organization-type', newType)
+    
+    // Update localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user-organization-type', newType)
+      console.log('OrganizationContext: Saved to localStorage:', newType)
+    }
     
     // Update DataManager if available (using dynamic import to avoid SSR issues)
     if (typeof window !== 'undefined') {
       import('@/lib/data-manager').then(({ dataManager }) => {
         dataManager.setOrganizationType(newType)
+        console.log('OrganizationContext: Updated DataManager to:', newType)
       }).catch(error => {
         console.warn('Could not update DataManager:', error)
       })
@@ -78,6 +86,11 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     }
   }, [organizationType, isLoading])
 
+  // Debug: Log organization type changes
+  useEffect(() => {
+    console.log('OrganizationContext: organizationType changed to:', organizationType)
+  }, [organizationType])
+
   const config = getOrganizationConfig(organizationType)
 
   const contextValue: OrganizationContextValue = {
@@ -107,7 +120,7 @@ export function useOrganization(): OrganizationContextValue {
 
 // Helper function for type validation
 function isValidOrganizationType(type: string): boolean {
-  return ['certification-body', 'food-manufacturer', 'import-export'].includes(type)
+  return ['certification-body', 'food-manufacturer'].includes(type)
 }
 
 // Hook for getting organization-specific text
@@ -141,8 +154,7 @@ export function useOrganizationText() {
       const { organizationType } = useOrganization()
       const descriptions = {
         'certification-body': 'Analyze ingredients for halal certification compliance using advanced AI technology',
-        'food-manufacturer': 'Validate product ingredients for halal compliance during development',
-        'import-export': 'Verify ingredient compliance for international halal trade requirements'
+        'food-manufacturer': 'Validate product ingredients for halal compliance during development'
       }
       return descriptions[organizationType] || descriptions['certification-body']
     },
@@ -160,11 +172,6 @@ export function useOrganizationText() {
           required: 'Compliance Documentation Required',
           complete: 'Compliance Documentation Complete',
           upload: 'Upload compliance documentation: certificates, lab reports, supplier attestations'
-        },
-        'import-export': {
-          required: 'Regulatory Documentation Required',
-          complete: 'Regulatory Documentation Complete',
-          upload: 'Upload regulatory documentation: certificates, customs papers, compliance reports'
         }
       }
       return documentationTexts[organizationType][type] || documentationTexts['certification-body'][type]

@@ -1,7 +1,7 @@
 // Organization Context and Terminology Management
 // This file manages organization-specific UI, workflows, and terminology
 
-export type OrganizationType = 'certification-body' | 'food-manufacturer' | 'import-export'
+export type OrganizationType = 'certification-body' | 'food-manufacturer'
 
 export interface OrganizationConfig {
   type: OrganizationType
@@ -213,82 +213,6 @@ export const ORGANIZATION_CONFIGS: Record<OrganizationType, OrganizationConfig> 
       enablesBulkProcessing: true,
       supportsAuditTrail: false
     }
-  },
-
-  'import-export': {
-    type: 'import-export',
-    name: 'Import/Export Company',
-    description: 'Manage halal compliance for international trade',
-    icon: '🚢',
-    color: 'indigo',
-    dashboardTitle: 'Trade Compliance Dashboard',
-    pipelineTitle: 'Compliance Pipeline',
-    stages: [
-      {
-        id: 'documentation',
-        title: 'Documentation Review',
-        description: 'Review supplier certificates and product documentation',
-        color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: '<svg>...</svg>',
-        isDefault: true,
-        order: 1
-      },
-      {
-        id: 'verification',
-        title: 'Compliance Verification',
-        description: 'Verify halal compliance against destination requirements',
-        color: 'bg-amber-100 text-amber-800 border-amber-200',
-        icon: '<svg>...</svg>',
-        isDefault: true,
-        order: 2
-      },
-      {
-        id: 'customs-ready',
-        title: 'Customs Ready',
-        description: 'All documentation prepared for customs clearance',
-        color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-        icon: '<svg>...</svg>',
-        isDefault: true,
-        order: 3
-      },
-      {
-        id: 'approved',
-        title: 'Trade Approved',
-        description: 'Approved for import/export with halal compliance',
-        color: 'bg-green-100 text-green-800 border-green-200',
-        icon: '<svg>...</svg>',
-        isDefault: true,
-        order: 4
-      }
-    ],
-    terminology: {
-      itemName: 'Shipment',
-      itemNamePlural: 'Shipments',
-      pipelineName: 'Compliance Pipeline',
-      workflowName: 'Trade Compliance Workflow',
-      createAction: 'New Shipment',
-      processAction: 'Process Shipment',
-      completeAction: 'Approve for Trade',
-      documentName: 'Compliance Certificate',
-      documentAction: 'Issue Compliance Certificate',
-      clientName: 'Supplier',
-      clientNamePlural: 'Suppliers',
-      statusDescriptions: {
-        documentation: 'Reviewing supplier certificates and product documentation',
-        verification: 'Verifying halal compliance against destination country requirements',
-        'customs-ready': 'All documentation prepared for customs clearance',
-        approved: 'Approved for import/export with full halal compliance',
-        rejected: 'Shipment does not meet halal compliance requirements'
-      }
-    },
-    features: {
-      hasCertificates: true,
-      hasReports: true,
-      allowsCustomStages: false,
-      showsComplianceInfo: true,
-      enablesBulkProcessing: true,
-      supportsAuditTrail: true
-    }
   }
 }
 
@@ -325,7 +249,6 @@ export const DEFAULT_ORGANIZATION_TYPE: OrganizationType = 'certification-body'
 export const REGISTRATION_ORGANIZATION_MAPPING: Record<string, OrganizationType> = {
   'certification_body': 'certification-body',
   'food_manufacturer': 'food-manufacturer',
-  'importer': 'import-export',
   'restaurant': 'food-manufacturer', // Maps to manufacturer workflow
   'consultant': 'certification-body', // Maps to certification workflow
   'other': 'certification-body' // Default fallback
