@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { OrganizationType, getOrganizationConfig, mapRegistrationTypeToOrganization } from '@/lib/organization-context'
 // Removed Supabase imports for mock implementation
 
 export default function RegisterPage() {
@@ -13,6 +14,9 @@ export default function RegisterPage() {
     fullName: '',
     companyName: '',
     companyType: 'certification_body' as const,
+    industry: '',
+    teamSize: '',
+    mainGoals: [] as string[],
     country: '',
     phone: ''
   })
@@ -21,9 +25,107 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false)
   
   const router = useRouter()
   // Removed Supabase client for mock implementation
+
+  // Get organization-specific guidance
+  const getOrganizationGuidance = (companyType: string) => {
+    const orgType = mapRegistrationTypeToOrganization(companyType)
+    const config = getOrganizationConfig(orgType)
+    
+    const guidanceMap: Record<OrganizationType, {
+      title: string
+      description: string
+      features: string[]
+      setupSteps: string[]
+      expectedOutcomes: string[]
+      pricing: string
+    }> = {
+      'certification-body': {
+        title: 'Halal Certification Body Platform',
+        description: 'Professional halal certification management with Islamic jurisprudence integration',
+        features: [
+          'Islamic jurisprudence references with Quranic citations',
+          'Professional halal certificate generation',
+          'Application pipeline: New → Review → Approved → Certified',
+          'Multi-client certification management',
+          'Audit trail and compliance tracking'
+        ],
+        setupSteps: [
+          'Set up your certification authority profile',
+          'Configure your certification pipeline stages',
+          'Import existing client database',
+          'Customize certificate templates',
+          'Train your team on the platform'
+        ],
+        expectedOutcomes: [
+          'Streamline certification processing workflow',
+          'Automate repetitive analysis tasks',
+          'Generate professional Islamic-compliant certificates',
+          'Maintain comprehensive audit trails',
+          'Scale your certification operations'
+        ],
+        pricing: 'Starting at €299/month for 200 analyses'
+      },
+      'food-manufacturer': {
+        title: 'Product Development Platform',
+        description: 'Halal compliance validation for product development and pre-certification',
+        features: [
+          'Product development pipeline with validation stages',
+          'Pre-certification compliance reports',
+          'Development recommendations and next steps',
+          'Ingredient risk assessment and alternatives',
+          'Certification readiness evaluation'
+        ],
+        setupSteps: [
+          'Set up your product development workflow',
+          'Configure product categories and goals',
+          'Import your current product formulations',
+          'Set up development milestones',
+          'Connect with certification partners'
+        ],
+        expectedOutcomes: [
+          'Accelerate product development validation',
+          'Identify compliance issues early in development',
+          'Generate professional pre-certification reports',
+          'Build certification-ready product portfolio',
+          'Streamline regulatory approval process'
+        ],
+        pricing: 'Starting at €299/month for 200 product analyses'
+      },
+      'import-export': {
+        title: 'Trade Compliance Platform',
+        description: 'International halal trade compliance and documentation management',
+        features: [
+          'Trade compliance certificate generation',
+          'International standards integration (MS 1500, OIC)',
+          'Multi-country regulatory compliance',
+          'Supply chain documentation management',
+          'Export/import clearance support'
+        ],
+        setupSteps: [
+          'Configure your trade routes and markets',
+          'Set up supplier and client databases',
+          'Configure compliance requirements by country',
+          'Set up documentation templates',
+          'Integrate with customs and regulatory systems'
+        ],
+        expectedOutcomes: [
+          'Streamline trade documentation workflow',
+          'Ensure compliance across multiple markets',
+          'Generate internationally-recognized certificates',
+          'Streamline customs clearance processes',
+          'Expand into new halal markets confidently'
+        ],
+        pricing: 'Starting at €799/month for trade operations'
+      }
+    }
+    
+    return guidanceMap[orgType] || guidanceMap['certification-body']
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -89,6 +191,10 @@ export default function RegisterPage() {
         if (data.accessToken) {
           localStorage.setItem('auth-token', data.accessToken)
           localStorage.setItem('user-email', formData.email)
+          
+          // Store organization type for immediate dashboard configuration
+          const orgType = mapRegistrationTypeToOrganization(formData.companyType)
+          localStorage.setItem('user-organization-type', orgType)
           
           // Also set as cookie for middleware
           document.cookie = `auth-token=${data.accessToken}; path=/; max-age=86400` // 24 hours
@@ -213,21 +319,110 @@ export default function RegisterPage() {
               <label htmlFor="companyType" className="block text-sm font-medium text-gray-700 mb-2">
                 Company type
               </label>
-              <select
-                id="companyType"
-                name="companyType"
-                value={formData.companyType}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-              >
-                <option value="certification_body">Certification Body</option>
-                <option value="food_manufacturer">Food Manufacturer</option>
-                <option value="restaurant">Restaurant</option>
-                <option value="importer">Importer</option>
-                <option value="consultant">Consultant</option>
-                <option value="other">Other</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="companyType"
+                  name="companyType"
+                  value={formData.companyType}
+                  onChange={(e) => {
+                    handleChange(e)
+                    setShowOnboardingGuide(true)
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                >
+                  <option value="certification_body">🏛️ Halal Certification Body</option>
+                  <option value="food_manufacturer">🏭 Food Manufacturer</option>
+                  <option value="import_export">🚢 Import/Export Company</option>
+                  <option value="restaurant">🍽️ Restaurant/Food Service</option>
+                  <option value="consultant">👨‍💼 Halal Consultant</option>
+                  <option value="other">📋 Other</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowOnboardingGuide(!showOnboardingGuide)}
+                  className="absolute right-12 top-1/2 transform -translate-y-1/2 text-green-600 hover:text-green-700"
+                  title="View platform guidance for your organization type"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            {/* Organization-specific onboarding guide */}
+            {showOnboardingGuide && (
+              <div className="bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 border border-green-200 rounded-xl p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {getOrganizationGuidance(formData.companyType).title}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowOnboardingGuide(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <p className="text-gray-700">
+                  {getOrganizationGuidance(formData.companyType).description}
+                </p>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">✨ Key Features</h4>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      {getOrganizationGuidance(formData.companyType).features.map((feature, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">🎯 Expected Outcomes</h4>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      {getOrganizationGuidance(formData.companyType).expectedOutcomes.map((outcome, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-blue-600 mt-0.5">•</span>
+                          <span>{outcome}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-green-200">
+                  <h4 className="font-semibold text-gray-900 mb-2">🚀 Getting Started</h4>
+                  <div className="text-sm text-gray-700 space-y-2">
+                    {getOrganizationGuidance(formData.companyType).setupSteps.map((step, index) => (
+                      <div key={index} className="flex items-start space-x-3">
+                        <span className="flex-shrink-0 w-5 h-5 bg-green-100 text-green-800 rounded-full flex items-center justify-center text-xs font-semibold">
+                          {index + 1}
+                        </span>
+                        <span>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">Pricing: </span>
+                    <span className="text-sm text-gray-700">{getOrganizationGuidance(formData.companyType).pricing}</span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    14-day free trial included
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Country */}
             <div>

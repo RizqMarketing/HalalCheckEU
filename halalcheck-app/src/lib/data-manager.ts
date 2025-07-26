@@ -1,6 +1,11 @@
 // Centralized Data Management System for HalalCheck AI
 // Handles all data synchronization between Applications, Certificates, and Analytics
 
+import { OrganizationType, getPipelineStages, getOrganizationConfig } from './organization-context'
+
+// Generic status type that works for all organization types
+export type ApplicationStatus = string
+
 export interface Application {
   id: string
   clientName: string
@@ -9,11 +14,12 @@ export interface Application {
   email: string
   phone: string
   submittedDate: string
-  status: 'new' | 'reviewing' | 'approved' | 'certified' | 'rejected'
+  status: ApplicationStatus // Now supports organization-specific statuses
   priority: 'high' | 'normal' | 'low'
   documents: string[]
   analysisResult?: any
   notes: string
+  organizationType?: OrganizationType // Track which organization type created this
   createdAt: string
   updatedAt: string
 }
@@ -74,6 +80,7 @@ class DataManager {
   private applications: Application[] = []
   private certificates: Certificate[] = []
   private listeners: Array<() => void> = []
+  private currentOrganizationType: OrganizationType = 'certification-body'
 
   static getInstance(): DataManager {
     if (!DataManager.instance) {
@@ -84,6 +91,16 @@ class DataManager {
 
   constructor() {
     this.loadData()
+  }
+
+  // Set organization type context
+  setOrganizationType(type: OrganizationType) {
+    this.currentOrganizationType = type
+    this.notify() // Notify listeners of context change
+  }
+
+  getCurrentOrganizationType(): OrganizationType {
+    return this.currentOrganizationType
   }
 
   // Event system for real-time updates
@@ -215,11 +232,12 @@ class DataManager {
     return this.applications.find(app => app.id === id)
   }
 
-  addApplication(applicationData: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>): Application {
+  addApplication(applicationData: Omit<Application, 'id' | 'createdAt' | 'updatedAt' | 'organizationType'>): Application {
     const now = new Date().toISOString()
     const newApplication: Application = {
       ...applicationData,
       id: crypto.randomUUID(),
+      organizationType: this.currentOrganizationType,
       createdAt: now,
       updatedAt: now
     }
@@ -234,19 +252,47 @@ class DataManager {
     if (index === -1) return null
 
     const oldStatus = this.applications[index].status
+    const app = this.applications[index]
+    const orgType = app.organizationType || this.currentOrganizationType
+    
     this.applications[index] = {
-      ...this.applications[index],
+      ...app,
       ...updates,
       updatedAt: new Date().toISOString()
     }
 
-    // Auto-generate certificate when status changes to 'certified'
-    if (oldStatus !== 'certified' && updates.status === 'certified') {
+    // Auto-generate certificate based on organization type final status
+    const shouldGenerateCertificate = this.shouldGenerateCertificate(oldStatus, updates.status, orgType)
+    if (shouldGenerateCertificate) {
       this.generateCertificateFromApplication(this.applications[index])
     }
 
     this.saveData()
     return this.applications[index]
+  }
+
+  // Determine if certificate should be generated based on organization type
+  private shouldGenerateCertificate(oldStatus: string, newStatus: string | undefined, orgType: OrganizationType): boolean {
+    if (!newStatus || oldStatus === newStatus) return false
+    
+    const config = getOrganizationConfig(orgType)
+    
+    // Only certification bodies generate actual certificates
+    if (orgType === 'certification-body') {
+      return oldStatus !== 'certified' && newStatus === 'certified'
+    }
+    
+    // Manufacturers generate reports when reaching final stage
+    if (orgType === 'food-manufacturer') {
+      return oldStatus !== 'certification-ready' && newStatus === 'certification-ready'
+    }
+    
+    // Import/export generates compliance certificates
+    if (orgType === 'import-export') {
+      return oldStatus !== 'approved' && newStatus === 'approved'
+    }
+    
+    return false
   }
 
   deleteApplication(id: string): boolean {
@@ -274,7 +320,12 @@ class DataManager {
   }
 
   generateCertificateFromApplication(application: Application): Certificate {
-    const certificateNumber = `HC-${new Date().getFullYear()}-${String(this.certificates.length + 1).padStart(3, '0')}`
+    const orgType = application.organizationType || this.currentOrganizationType
+    const config = getOrganizationConfig(orgType)
+    
+    // Generate organization-specific certificate number
+    const prefix = this.getCertificatePrefix(orgType)
+    const certificateNumber = `${prefix}-${new Date().getFullYear()}-${String(this.certificates.length + 1).padStart(3, '0')}`
     
     const certificate: Certificate = {
       id: crypto.randomUUID(),
@@ -289,8 +340,8 @@ class DataManager {
       expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       status: 'active',
       analysisResult: application.analysisResult || { overall_status: 'HALAL', confidence_score: 0.95 },
-      certificateType: 'standard',
-      notes: `Auto-generated from application ${application.id}`,
+      certificateType: this.getCertificateType(orgType),
+      notes: `Auto-generated ${config.terminology.documentName.toLowerCase()} from ${application.id}`,
       pdfUrl: `/certificates/${certificateNumber}.pdf`,
       createdAt: new Date().toISOString()
     }
@@ -298,6 +349,24 @@ class DataManager {
     this.certificates.push(certificate)
     this.saveData()
     return certificate
+  }
+
+  private getCertificatePrefix(orgType: OrganizationType): string {
+    switch (orgType) {
+      case 'certification-body': return 'HC'
+      case 'food-manufacturer': return 'PCR'
+      case 'import-export': return 'CC'
+      default: return 'HC'
+    }
+  }
+
+  private getCertificateType(orgType: OrganizationType): 'standard' | 'premium' | 'export' {
+    switch (orgType) {
+      case 'certification-body': return 'standard'
+      case 'food-manufacturer': return 'premium' // Pre-certification report
+      case 'import-export': return 'export'
+      default: return 'standard'
+    }
   }
 
   updateCertificate(id: string, updates: Partial<Certificate>): Certificate | null {
@@ -322,26 +391,50 @@ class DataManager {
     return true
   }
 
-  // Analytics
-  getAnalyticsData(): AnalyticsData {
-    const apps = this.getApplications()
-    const certs = this.getCertificates()
+  // Get applications filtered by organization type
+  getApplicationsByOrganizationType(orgType?: OrganizationType): Application[] {
+    const targetType = orgType || this.currentOrganizationType
+    return this.applications.filter(app => 
+      (app.organizationType || 'certification-body') === targetType
+    )
+  }
 
-    // Calculate status distribution
-    const statusCounts = {
-      new: apps.filter(app => app.status === 'new').length,
-      reviewing: apps.filter(app => app.status === 'reviewing').length,
-      approved: apps.filter(app => app.status === 'approved').length,
-      certified: apps.filter(app => app.status === 'certified').length,
-      rejected: apps.filter(app => app.status === 'rejected').length
+  // Get available statuses for current organization type
+  getAvailableStatuses(orgType?: OrganizationType): string[] {
+    const targetType = orgType || this.currentOrganizationType
+    const stages = getPipelineStages(targetType)
+    return stages.map(stage => stage.id)
+  }
+
+  // Validate status for organization type
+  isValidStatus(status: string, orgType?: OrganizationType): boolean {
+    const availableStatuses = this.getAvailableStatuses(orgType)
+    return availableStatuses.includes(status)
+  }
+
+  // Analytics
+  getAnalyticsData(orgType?: OrganizationType): AnalyticsData {
+    const targetType = orgType || this.currentOrganizationType
+    const apps = this.getApplicationsByOrganizationType(targetType)
+    const certs = this.getCertificates() // All certificates for now
+    const stages = getPipelineStages(targetType)
+
+    // Calculate status distribution based on organization stages
+    const statusCounts: Record<string, number> = {}
+    stages.forEach(stage => {
+      statusCounts[stage.id] = apps.filter(app => app.status === stage.id).length
+    })
+    
+    // Add rejected count if not in stages
+    if (!statusCounts.rejected) {
+      statusCounts.rejected = apps.filter(app => app.status === 'rejected').length
     }
 
-    const statusDistribution = [
-      { status: 'Active', count: certs.filter(cert => cert.status === 'active').length, color: 'bg-green-500' },
-      { status: 'Expired', count: certs.filter(cert => cert.status === 'expired').length, color: 'bg-amber-500' },
-      { status: 'Pending', count: statusCounts.approved, color: 'bg-blue-500' },
-      { status: 'Revoked', count: certs.filter(cert => cert.status === 'revoked').length, color: 'bg-red-500' }
-    ]
+    const statusDistribution = stages.map(stage => ({
+      status: stage.title,
+      count: statusCounts[stage.id] || 0,
+      color: stage.color.includes('bg-') ? stage.color.split(' ')[0] : 'bg-gray-500'
+    }))
 
     // Calculate monthly stats
     const monthlyStats = this.calculateMonthlyStats(apps, certs)

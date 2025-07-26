@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { OrganizationProvider } from '@/contexts/organization-context'
+import DevelopmentOrgSwitcher from '@/components/DevelopmentOrgSwitcher'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -51,9 +53,13 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} h-full bg-gray-50 antialiased`}>
         <ErrorBoundary>
-          <div className="min-h-full">
-            {children}
-          </div>
+          <OrganizationProvider>
+            <div className="min-h-full">
+              {children}
+            </div>
+            {/* Development Organization Switcher */}
+            <DevelopmentOrgSwitcher />
+          </OrganizationProvider>
         </ErrorBoundary>
         <script
           dangerouslySetInnerHTML={{

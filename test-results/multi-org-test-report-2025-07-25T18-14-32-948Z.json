@@ -1,0 +1,181 @@
+{
+  "summary": {
+    "totalTests": 14,
+    "totalPassed": 12,
+    "totalFailed": 2,
+    "totalSkipped": 0,
+    "overallPassRate": "85.71",
+    "executionTime": 11980
+  },
+  "suiteResults": [
+    {
+      "suite": "certification-body",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3,
+      "startTime": "2025-07-25T18:14:20.965Z",
+      "endTime": "2025-07-25T18:14:23.801Z",
+      "testResults": [
+        {
+          "testId": "CB-001",
+          "passed": true,
+          "error": null,
+          "duration": 1348,
+          "timestamp": "2025-07-25T18:14:22.313Z"
+        },
+        {
+          "testId": "CB-002",
+          "passed": true,
+          "error": null,
+          "duration": 902,
+          "timestamp": "2025-07-25T18:14:23.216Z"
+        },
+        {
+          "testId": "CB-003",
+          "passed": true,
+          "error": null,
+          "duration": 584,
+          "timestamp": "2025-07-25T18:14:23.801Z"
+        }
+      ],
+      "duration": 2836
+    },
+    {
+      "suite": "food-manufacturer",
+      "passed": 3,
+      "failed": 1,
+      "skipped": 0,
+      "total": 4,
+      "startTime": "2025-07-25T18:14:23.802Z",
+      "endTime": "2025-07-25T18:14:27.595Z",
+      "testResults": [
+        {
+          "testId": "FM-001",
+          "passed": true,
+          "error": null,
+          "duration": 1454,
+          "timestamp": "2025-07-25T18:14:25.256Z"
+        },
+        {
+          "testId": "FM-002",
+          "passed": true,
+          "error": null,
+          "duration": 515,
+          "timestamp": "2025-07-25T18:14:25.772Z"
+        },
+        {
+          "testId": "FM-003",
+          "passed": false,
+          "error": "Simulated test failure",
+          "duration": 566,
+          "timestamp": "2025-07-25T18:14:26.339Z"
+        },
+        {
+          "testId": "FM-004",
+          "passed": true,
+          "error": null,
+          "duration": 1256,
+          "timestamp": "2025-07-25T18:14:27.595Z"
+        }
+      ],
+      "duration": 3793
+    },
+    {
+      "suite": "import-export",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "total": 2,
+      "startTime": "2025-07-25T18:14:27.596Z",
+      "endTime": "2025-07-25T18:14:28.916Z",
+      "testResults": [
+        {
+          "testId": "IE-001",
+          "passed": true,
+          "error": null,
+          "duration": 699,
+          "timestamp": "2025-07-25T18:14:28.295Z"
+        },
+        {
+          "testId": "IE-002",
+          "passed": true,
+          "error": null,
+          "duration": 619,
+          "timestamp": "2025-07-25T18:14:28.915Z"
+        }
+      ],
+      "duration": 1320
+    },
+    {
+      "suite": "cross-organization",
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "total": 2,
+      "startTime": "2025-07-25T18:14:28.916Z",
+      "endTime": "2025-07-25T18:14:30.359Z",
+      "testResults": [
+        {
+          "testId": "XO-001",
+          "passed": true,
+          "error": null,
+          "duration": 713,
+          "timestamp": "2025-07-25T18:14:29.629Z"
+        },
+        {
+          "testId": "XO-002",
+          "passed": false,
+          "error": "Simulated test failure",
+          "duration": 730,
+          "timestamp": "2025-07-25T18:14:30.359Z"
+        }
+      ],
+      "duration": 1443
+    },
+    {
+      "suite": "performance",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3,
+      "startTime": "2025-07-25T18:14:30.359Z",
+      "endTime": "2025-07-25T18:14:32.947Z",
+      "testResults": [
+        {
+          "testId": "PERF-001",
+          "passed": true,
+          "error": null,
+          "duration": 1086,
+          "timestamp": "2025-07-25T18:14:31.445Z"
+        },
+        {
+          "testId": "SEC-001",
+          "passed": true,
+          "error": null,
+          "duration": 822,
+          "timestamp": "2025-07-25T18:14:32.267Z"
+        },
+        {
+          "testId": "EDGE-001",
+          "passed": true,
+          "error": null,
+          "duration": 680,
+          "timestamp": "2025-07-25T18:14:32.947Z"
+        }
+      ],
+      "duration": 2588
+    }
+  ],
+  "criticalFailures": [
+    {
+      "testId": "XO-002",
+      "suite": "cross-organization",
+      "error": "Simulated test failure"
+    }
+  ],
+  "recommendations": [
+    "❗ Critical failures detected - address before production deployment",
+    "📊 Pass rate below 95% - additional testing recommended"
+  ]
+}

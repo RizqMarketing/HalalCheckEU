@@ -63,9 +63,9 @@ export default function Home() {
             </div>
             
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 leading-tight">
-              Save 90% of Your
+              Save Time on Your
               <span className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 bg-clip-text text-transparent block mt-2">
-                Certification Time
+                Certification Process
               </span>
               <span className="text-4xl md:text-5xl lg:text-6xl block mt-4 text-gray-700">
                 With AI Pre-Screening
@@ -73,9 +73,9 @@ export default function Home() {
             </h1>
             
             <p className="mt-8 max-w-2xl mx-auto text-xl md:text-2xl text-gray-600 leading-relaxed">
-              Reduce 3-hour manual ingredient reviews to <span className="font-semibold text-green-700">30 seconds</span>. 
-              Pre-screen thousands of products instantly, organize all documents in one dashboard, 
-              and focus only on complex cases that need your expert attention.
+              Streamline manual ingredient reviews from hours to minutes. 
+              Pre-screen products efficiently, organize all documents in one dashboard, 
+              and focus your expert attention on complex cases that matter most.
             </p>
             
             <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">

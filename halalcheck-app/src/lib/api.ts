@@ -64,6 +64,21 @@ class ApiService {
     });
   }
 
+  // Enhanced file analysis with vision support
+  async analyzeFile(file: File, productName?: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (productName) {
+      formData.append('productName', productName);
+    }
+
+    return this.request('/api/analysis/analyze-file', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Remove Content-Type for FormData
+    });
+  }
+
   async analyzeBulk(file: File) {
     const formData = new FormData();
     formData.append('file', file);

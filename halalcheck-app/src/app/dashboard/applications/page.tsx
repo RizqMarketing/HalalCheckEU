@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { dataManager, Application } from '@/lib/data-manager'
+import { trackPipeline, trackPageView, trackFeatureUsage } from '@/lib/analytics-tracker'
 
 const statusConfig = {
   new: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'New Application' },
@@ -26,6 +27,11 @@ export default function ApplicationsPage() {
   const [editingColumnTitle, setEditingColumnTitle] = useState('')
 
   useEffect(() => {
+    // Track page view
+    trackPageView('applications', {
+      viewType: 'pipeline'
+    })
+    
     loadApplications()
     loadCustomColumns()
     
@@ -52,8 +58,23 @@ export default function ApplicationsPage() {
   const handleDrop = (e: React.DragEvent, newStatus: Application['status']) => {
     e.preventDefault()
     if (draggedApp) {
+      const app = applications.find(a => a.id === draggedApp)
+      const oldStatus = app?.status
+      
       dataManager.updateApplication(draggedApp, { status: newStatus })
       setDraggedApp(null)
+      
+      // Track pipeline stage change
+      if (app && oldStatus !== newStatus) {
+        trackPipeline('stage_changed', {
+          applicationId: draggedApp,
+          clientName: app.clientName,
+          productName: app.productName,
+          fromStatus: oldStatus,
+          toStatus: newStatus,
+          changeMethod: 'drag_drop'
+        })
+      }
     }
   }
 
@@ -86,6 +107,21 @@ export default function ApplicationsPage() {
       case 'normal': return 'bg-gray-100 text-gray-700 border-gray-200'
       case 'low': return 'bg-blue-100 text-blue-700 border-blue-200'
     }
+  }
+
+  const getVerificationDocumentCount = (app: Application) => {
+    if (!app.analysisResult?.ingredients) {
+      return app.documents?.length || 0
+    }
+    
+    let count = 0
+    app.analysisResult.ingredients.forEach((ingredient: any) => {
+      if (ingredient.verificationDocuments) {
+        count += ingredient.verificationDocuments.length
+      }
+    })
+    
+    return count
   }
 
   const openApplicationModal = (app: Application) => {
@@ -141,10 +177,20 @@ export default function ApplicationsPage() {
     const updated = [...customColumns, newColumn]
     setCustomColumns(updated)
     saveCustomColumns(updated)
+    
+    // Track custom column creation
+    trackFeatureUsage('pipeline_custom_stage_added', {
+      stageId: newColumn.id,
+      totalCustomStages: updated.length,
+      totalStages: defaultColumns.length + updated.length
+    })
   }
 
   const removeCustomColumn = (columnId: string) => {
     if (confirm('Are you sure you want to remove this column? All applications in this column will be moved to "New Applications".')) {
+      // Count applications that will be moved
+      const affectedApps = applications.filter(app => app.status === columnId as any)
+      
       // Move all applications in this column to 'new' status
       applications.forEach(app => {
         if (app.status === columnId as any) {
@@ -155,6 +201,14 @@ export default function ApplicationsPage() {
       const updated = customColumns.filter(col => col.id !== columnId)
       setCustomColumns(updated)
       saveCustomColumns(updated)
+      
+      // Track custom column removal
+      trackFeatureUsage('pipeline_custom_stage_removed', {
+        stageId: columnId,
+        affectedApplications: affectedApps.length,
+        totalCustomStages: updated.length,
+        totalStages: defaultColumns.length + updated.length
+      })
     }
   }
 
@@ -392,7 +446,7 @@ export default function ApplicationsPage() {
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd"/>
                         </svg>
-                        <span>{app.documents.length} documents</span>
+                        <span>{getVerificationDocumentCount(app)} documents</span>
                       </div>
                     </div>
 
@@ -653,7 +707,102 @@ function ApplicationModal({ application, onClose, onUpdate, onDelete }: {
           <div>
             <label className="text-sm font-medium text-slate-700">Documents</label>
             <div className="mt-2 space-y-2">
-              {application.documents.map((doc, index) => (
+              {/* Show uploaded verification documents from analysis */}
+              {application.analysisResult && application.analysisResult.ingredients && (
+                <>
+                  {application.analysisResult.ingredients.map((ingredient: any) => {
+                    if (ingredient.verificationDocuments && ingredient.verificationDocuments.length > 0) {
+                      return ingredient.verificationDocuments.map((doc: any) => {
+                        const getDocumentIcon = (filename: string) => {
+                          const ext = filename.toLowerCase().split('.').pop()
+                          if (ext === 'pdf') {
+                            return (
+                              <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )
+                          } else if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) {
+                            return (
+                              <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )
+                          } else {
+                            return (
+                              <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )
+                          }
+                        }
+
+                        const getDocumentTypeBadge = (type: string) => {
+                          const typeMap: Record<string, any> = {
+                            'certificate': { color: 'bg-green-100 text-green-700', icon: '🏆', label: 'Certificate' },
+                            'supplier_letter': { color: 'bg-blue-100 text-blue-700', icon: '📄', label: 'Supplier Letter' },
+                            'lab_report': { color: 'bg-purple-100 text-purple-700', icon: '🔬', label: 'Lab Report' },
+                            'other': { color: 'bg-gray-100 text-gray-700', icon: '📎', label: 'Other Document' }
+                          }
+                          const typeInfo = typeMap[type] || typeMap.other
+                          return typeInfo
+                        }
+
+                        const docType = getDocumentTypeBadge(doc.type)
+                        
+                        return (
+                          <div key={doc.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                            <div className="flex items-start space-x-3">
+                              {getDocumentIcon(doc.filename)}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-medium text-slate-800 truncate">
+                                    {doc.filename}
+                                  </span>
+                                  <span className="text-xs text-slate-500 ml-2">
+                                    {new Date(doc.uploadDate).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`text-xs px-2 py-1 rounded font-medium ${docType.color}`}>
+                                      {docType.icon} {docType.label}
+                                    </span>
+                                    <span className="text-xs text-slate-600">
+                                      for {ingredient.name}
+                                    </span>
+                                  </div>
+                                  <button 
+                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                    onClick={() => {
+                                      // TODO: Add document view functionality
+                                      console.log('View document:', doc.filename)
+                                    }}
+                                  >
+                                    View
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    }
+                    return null
+                  }).filter(Boolean)}
+                </>
+              )}
+              
+              {/* Show standard documents if no verification documents */}
+              {(!application.analysisResult || 
+                !application.analysisResult.ingredients ||
+                !application.analysisResult.ingredients.some((ing: any) => ing.verificationDocuments?.length > 0)) && 
+                application.documents.map((doc, index) => (
                 <div key={index} className="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg">
                   <svg className="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd"/>
@@ -661,6 +810,16 @@ function ApplicationModal({ application, onClose, onUpdate, onDelete }: {
                   <span className="text-sm text-slate-700">{doc}</span>
                 </div>
               ))}
+              
+              {/* Show if no documents at all */}
+              {(!application.documents || application.documents.length === 0) && 
+               (!application.analysisResult || 
+                !application.analysisResult.ingredients ||
+                !application.analysisResult.ingredients.some((ing: any) => ing.verificationDocuments?.length > 0)) && (
+                <div className="text-sm text-slate-500 italic p-2">
+                  No documents uploaded yet
+                </div>
+              )}
             </div>
           </div>
           

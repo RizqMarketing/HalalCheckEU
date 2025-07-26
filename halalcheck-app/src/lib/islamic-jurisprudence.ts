@@ -198,8 +198,10 @@ export const INGREDIENT_CLASSIFICATIONS: IngredientClassification[] = [
     islamicReferences: [
       {
         source: 'Hadith',
-        reference: 'Sahih Bukhari',
-        translation: 'All that comes from the sea is pure and its dead (fish) are lawful food.',
+        reference: 'Sahih Bukhari 2312, Sunan Abu Dawud 83',
+        arabic: 'هُوَ الطَّهُورُ مَاؤُهُ الْحِلُّ مَيْتَتُهُ',
+        transliteration: 'Huwa at-tahuru ma\'uhu al-hillu maytatuhu',
+        translation: 'Its (the sea\'s) water is pure and its dead (fish) are lawful food.',
         school: 'General'
       }
     ]
@@ -213,8 +215,10 @@ export const INGREDIENT_CLASSIFICATIONS: IngredientClassification[] = [
     islamicReferences: [
       {
         source: 'Hadith',
-        reference: 'Slaughter Requirements',
-        translation: 'Animals must be slaughtered by invoking Allah\'s name with a sharp knife cutting the jugular veins.',
+        reference: 'Sahih Bukhari 5498, Sahih Muslim 1955',
+        arabic: 'إِنَّ اللَّهَ كَتَبَ الْإِحْسَانَ عَلَى كُلِّ شَيْءٍ فَإِذَا قَتَلْتُمْ فَأَحْسِنُوا الْقِتْلَةَ وَإِذَا ذَبَحْتُمْ فَأَحْسِنُوا الذَّبْحَ',
+        transliteration: 'Inna Allaha kataba al-ihsana ala kulli shay\'in fa-idha qataltum fa-ahsinu al-qitlata wa-idha dhabahtum fa-ahsinu adh-dhabh',
+        translation: 'Allah has prescribed excellence in all things. So when you kill, kill well; and when you slaughter, slaughter well.',
         school: 'General'
       }
     ],

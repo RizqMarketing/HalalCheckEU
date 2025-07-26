@@ -57,7 +57,9 @@
       "Bash(dir package.json)",
       "WebFetch(domain:localhost)",
       "Bash(start /B node:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(sed:*)",
+      "Bash(kill:*)"
     ],
     "deny": []
   }
