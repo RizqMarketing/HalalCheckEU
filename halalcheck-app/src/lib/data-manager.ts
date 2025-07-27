@@ -120,6 +120,12 @@ class DataManager {
     const storedApps = localStorage.getItem('halalcheck_applications')
     if (storedApps) {
       this.applications = JSON.parse(storedApps)
+      // Clean up any applications with invalid organization types (like old import-export)
+      this.applications = this.applications.filter(app => 
+        !app.organizationType || 
+        app.organizationType === 'certification-body' || 
+        app.organizationType === 'food-manufacturer'
+      )
     } else {
       this.initializeSampleData()
     }
@@ -287,10 +293,7 @@ class DataManager {
       return oldStatus !== 'certification-ready' && newStatus === 'certification-ready'
     }
     
-    // Import/export generates compliance certificates
-    if (orgType === 'import-export') {
-      return oldStatus !== 'approved' && newStatus === 'approved'
-    }
+    // This was for import/export which has been removed
     
     return false
   }
@@ -355,7 +358,6 @@ class DataManager {
     switch (orgType) {
       case 'certification-body': return 'HC'
       case 'food-manufacturer': return 'PCR'
-      case 'import-export': return 'CC'
       default: return 'HC'
     }
   }
@@ -364,7 +366,6 @@ class DataManager {
     switch (orgType) {
       case 'certification-body': return 'standard'
       case 'food-manufacturer': return 'premium' // Pre-certification report
-      case 'import-export': return 'export'
       default: return 'standard'
     }
   }

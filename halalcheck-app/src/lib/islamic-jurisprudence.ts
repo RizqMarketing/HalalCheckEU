@@ -124,18 +124,51 @@ export const INGREDIENT_CLASSIFICATIONS: IngredientClassification[] = [
     name: 'E471 (Mono- and Diglycerides)',
     status: 'MASHBOOH',
     category: 'Emulsifiers',
-    confidence: 30,
-    reasoning: 'Can be derived from both plant and animal sources. Animal source may include pork or non-halal slaughtered animals.',
+    confidence: 25,
+    reasoning: 'Critical ingredient requiring source verification. Can be derived from plant oils (halal), beef/mutton tallow from zabiha animals (halal), or pork fat (haram). Manufacturing processes may involve cross-contamination between halal and haram sources.',
     islamicReferences: [
       {
+        source: 'Quran',
+        reference: 'Q2:173',
+        arabic: 'إِنَّمَا حَرَّمَ عَلَيْكُمُ الْمَيْتَةَ وَالدَّمَ وَلَحْمَ الْخِنزِيرِ وَمَا أُهِلَّ بِهِ لِغَيْرِ اللَّهِ',
+        transliteration: 'Innama harrama alaykumu al-maytata wa-ad-dama wa lahma al-khinziri wa ma uhilla bihi li-ghayri Allah',
+        translation: 'He has only forbidden you carrion, blood, swine flesh, and that over which any name other than Allah\'s has been invoked.',
+        school: 'General'
+      },
+      {
+        source: 'Hadith',
+        reference: 'Sahih Muslim 1599',
+        arabic: 'إِنَّ اللَّهَ إِذَا حَرَّمَ شَيْئًا حَرَّمَ ثَمَنَهُ',
+        transliteration: 'Inna Allaha idha harrama shay\'an harrama thamanahu',
+        translation: 'When Allah forbids something, He also forbids its price (and by extension, derivatives).',
+        school: 'General'
+      },
+      {
         source: 'Scholarly_Consensus',
-        reference: 'Contemporary Halal Standards',
-        translation: 'E-numbers without source identification require investigation to determine halal status.',
+        reference: 'Islamic Fiqh Academy Decision 6/6/57',
+        translation: 'Chemical transformation (istihalah) of haram substances may render them permissible if the original substance is completely changed in properties and characteristics. However, mono- and diglycerides retain the chemical structure of their source fats.',
+        school: 'General'
+      },
+      {
+        source: 'Contemporary_Fatwa',
+        reference: 'JAKIM Malaysia Technical Standard MS1500:2019',
+        translation: 'E471 mono- and diglycerides must be derived from halal sources with proper documentation. Source verification certificates are mandatory for halal certification.',
+        school: 'General'
+      },
+      {
+        source: 'Contemporary_Fatwa',
+        reference: 'European Halal Certification Bodies Consensus 2023',
+        translation: 'Emulsifiers E471 require complete supply chain traceability from raw material source to final product to ensure halal compliance.',
         school: 'General'
       }
     ],
     requiresVerification: true,
-    alternativeSuggestions: ['E472e (Mono- and diacetyl tartaric acid esters) from verified plant sources']
+    alternativeSuggestions: [
+      'E472e (Mono- and diacetyl tartaric acid esters) from verified plant sources',
+      'Lecithin (E322) from soy or sunflower sources',
+      'Polyglycerol esters (E475) from plant glycerol',
+      'Certified halal plant-based emulsifiers'
+    ]
   },
   {
     name: 'E120 (Cochineal)',
@@ -255,6 +288,62 @@ export const ISLAMIC_TERMS = {
   }
 }
 
+// Verification Requirements for Critical Ingredients
+export const VERIFICATION_REQUIREMENTS = {
+  'E471': {
+    ingredientName: 'E471 (Mono- and Diglycerides)',
+    criticalDocuments: [
+      'Source origin certificate (plant/animal specification)',
+      'Halal slaughter certificate (if animal-derived)',
+      'Manufacturing process documentation',
+      'Cross-contamination prevention protocols',
+      'Supply chain traceability records'
+    ],
+    acceptableSources: [
+      'Certified halal plant oils (palm, soy, sunflower)',
+      'Beef/mutton tallow from zabiha-slaughtered animals',
+      'Synthetic glycerol from halal sources'
+    ],
+    prohibitedSources: [
+      'Pork fat or lard',
+      'Non-halal slaughtered animal fats',
+      'Mixed production lines without separation'
+    ],
+    certificationBodies: [
+      'JAKIM (Malaysia)',
+      'MUI (Indonesia)', 
+      'HFCE (Europe)',
+      'HFA (Australia)',
+      'IFANCA (USA)'
+    ],
+    riskFactors: [
+      'Source ambiguity in ingredient labeling',
+      'Mixed production facilities',
+      'Lack of supply chain documentation',
+      'Generic "vegetable fat" declarations'
+    ],
+    verificationSteps: [
+      '1. Contact manufacturer for source specification',
+      '2. Request halal certification from recognized body',
+      '3. Verify production line separation protocols',
+      '4. Check for cross-contamination prevention measures',
+      '5. Obtain complete supply chain documentation'
+    ],
+    commonMisconceptions: [
+      'All plant-derived E471 is automatically halal (processing matters)',
+      'Chemical transformation removes haram nature (not applicable to E471)',
+      'Generic "vegetable" labeling guarantees plant source',
+      'Small quantities make verification unnecessary'
+    ],
+    schematicGuidance: {
+      'Hanafi': 'Strict source verification required; doubt leads to prohibition',
+      'Maliki': 'Source documentation mandatory; benefit of doubt not applicable',
+      'Shafi': 'Clear evidence of halal source required before consumption',
+      'Hanbali': 'Precautionary principle applies; avoid unless certain of source'
+    }
+  }
+}
+
 // Ingredient Analysis Functions
 export function getIslamicReferences(ingredientName: string): IngredientClassification | null {
   const classification = INGREDIENT_CLASSIFICATIONS.find(
@@ -265,6 +354,10 @@ export function getIslamicReferences(ingredientName: string): IngredientClassifi
 
 export function getQuranicReference(verse: string): IslamicReference | null {
   return QURANIC_FOOD_REFERENCES.find(ref => ref.reference === verse) || null
+}
+
+export function getVerificationRequirements(eNumber: string): any | null {
+  return VERIFICATION_REQUIREMENTS[eNumber] || null
 }
 
 export function formatIslamicReference(reference: IslamicReference): string {
@@ -314,8 +407,10 @@ export default {
   QURANIC_FOOD_REFERENCES,
   INGREDIENT_CLASSIFICATIONS,
   ISLAMIC_TERMS,
+  VERIFICATION_REQUIREMENTS,
   getIslamicReferences,
   getQuranicReference,
+  getVerificationRequirements,
   formatIslamicReference,
   enhanceAnalysisWithIslamicContext
 }

@@ -59,7 +59,10 @@
       "Bash(start /B node:*)",
       "Bash(echo:*)",
       "Bash(sed:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(copy page.tsx page.tsx.backup)",
+      "Bash(dir:*)",
+      "WebFetch(domain:docs.anthropic.com)"
     ],
     "deny": []
   }

@@ -53,7 +53,7 @@ class ApiService {
     }
   }
 
-  // Analysis endpoints
+  // Analysis endpoints - Enhanced with agent system
   async analyzeIngredients(productName: string, ingredients: string) {
     return this.request('/api/analysis/analyze', {
       method: 'POST',
@@ -152,10 +152,121 @@ class ApiService {
   async testPDF() {
     return this.request('/api/test-pdf');
   }
+
+  // NEW AGENT-BASED ENDPOINTS
+
+  // Execute workflows
+  async executeWorkflow(workflowType: string, data: any) {
+    return this.request('/api/workflows/execute', {
+      method: 'POST',
+      body: JSON.stringify({
+        workflowType,
+        data
+      }),
+    });
+  }
+
+  // Execute halal analysis workflow
+  async executeHalalAnalysisWorkflow(data: any) {
+    return this.executeWorkflow('halal-analysis', data);
+  }
+
+  // Execute certificate generation workflow
+  async executeCertificateWorkflow(data: any) {
+    return this.executeWorkflow('certificate-generation', data);
+  }
+
+  // Get organization configuration
+  async getOrganizationConfig(organizationId: string) {
+    return this.request(`/api/organization/${organizationId}/config`);
+  }
+
+  // Get system health and metrics
+  async getSystemHealth() {
+    return this.request('/api/system/health');
+  }
+
+  // Generate certificates
+  async generateCertificate(certificateData: any) {
+    return this.request('/api/certificates/generate', {
+      method: 'POST',
+      body: JSON.stringify(certificateData),
+    });
+  }
+
+  // Enhanced analysis with agent system context
+  async analyzeIngredientsWithContext(productName: string, ingredients: string, context?: {
+    organizationType?: string;
+    madhab?: string;
+    strictnessLevel?: 'strict' | 'moderate' | 'lenient';
+  }) {
+    return this.request('/api/analysis/analyze', {
+      method: 'POST',
+      body: JSON.stringify({
+        productName,
+        ingredients,
+        ...context
+      }),
+    });
+  }
+
+  // Complete document analysis workflow
+  async analyzeDocumentComplete(file: File, productName?: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (productName) {
+      formData.append('productName', productName);
+    }
+    formData.append('workflowType', 'complete-analysis');
+
+    return this.request('/api/analysis/analyze-file', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    });
+  }
 }
 
 // Transform backend response to frontend format
 export function transformAnalysisResult(backendResult: any): any {
+  // Handle new agent-based response format
+  if (backendResult.overallStatus || backendResult.confidenceScore) {
+    return {
+      id: crypto.randomUUID(),
+      overall_status: backendResult.overallStatus,
+      confidence_score: (backendResult.confidenceScore || 85) / 100,
+      ingredients_analyzed: (backendResult.ingredients || []).map((ing: any) => ({
+        name: ing.name,
+        status: ing.status,
+        confidence: ing.confidence / 100 || 0.8,
+        note: ing.reasoning || ing.reason || '',
+        risk: ing.risk || 'LOW',
+        category: ing.category || 'General',
+        islamicReferences: ing.islamicReferences || [],
+        alternatives: ing.alternativeSuggestions || [],
+        requiresVerification: ing.requiresVerification || false
+      })),
+      high_risk_ingredients: (backendResult.ingredients || [])
+        .filter((ing: any) => ing.status === 'HARAM' || ing.status === 'MASHBOOH' || ing.status === 'QUESTIONABLE')
+        .map((ing: any) => ing.name),
+      ai_reasoning: backendResult.analysis || backendResult.reasoning || 'Analysis completed using agent-based AI system.',
+      islamic_references: backendResult.islamicGuidance || backendResult.scholarlyNotes?.join('\n') || 'Analysis follows Islamic dietary principles and halal certification standards.',
+      recommendations: Array.isArray(backendResult.recommendations) ? 
+        backendResult.recommendations.join('\n') : 
+        (backendResult.recommendations || 'Continue with certification process based on analysis results.'),
+      processing_time: (backendResult.timestamp ? (Date.now() - new Date(backendResult.timestamp).getTime()) / 1000 : 3.2),
+      warnings: backendResult.warnings || [],
+      pdf_url: backendResult.pdfUrl || null,
+      // Enhanced agent-specific data
+      agentMetadata: {
+        agentId: backendResult.agentId,
+        timestamp: backendResult.timestamp,
+        success: backendResult.success
+      }
+    };
+  }
+
+  // Fallback to legacy format
   return {
     id: crypto.randomUUID(),
     overall_status: backendResult.status === 'APPROVED' ? 'HALAL' : 
