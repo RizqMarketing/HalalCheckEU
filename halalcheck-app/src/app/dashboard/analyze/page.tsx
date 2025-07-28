@@ -3,9 +3,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useDropzone } from 'react-dropzone'
 import { useOrganization, useOrganizationText } from '@/contexts/organization-context'
 import { dataManager } from '@/lib/data-manager'
-import { enhanceAnalysisWithIslamicContext, formatIslamicReference } from '@/lib/islamic-jurisprudence'
+import { enhanceAnalysisWithAIContext, formatIslamicReference } from '@/lib/islamic-jurisprudence'
 
 // Type definitions
 interface AnalysisResult {
@@ -128,9 +129,11 @@ export default function AnalyzePage() {
 
   const [analyzing, setAnalyzing] = useState(false)
   const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
+  const [expandedBulkResults, setExpandedBulkResults] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [contextualError, setContextualError] = useState<{message: string, context: string} | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   // Comprehensive client list
   const [clients, setClients] = useState<Client[]>(() => {
@@ -217,40 +220,43 @@ export default function AnalyzePage() {
       // Enhanced transformation with full Islamic context
       const transformedResult: AnalysisResult = {
         id: crypto.randomUUID(),
-        product: result.product || state.productName,
-        overall: result.overall || 'REQUIRES_REVIEW',
+        product: state.productName,
+        overall: result.overallStatus === 'HALAL' ? 'APPROVED' : 
+                result.overallStatus === 'HARAM' ? 'PROHIBITED' : 
+                result.overallStatus === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 'REQUIRES_REVIEW',
         ingredients: (result.ingredients || []).map((ing: any) => ({
           name: ing.name,
-          status: ing.status || 'REQUIRES_REVIEW',
-          reason: ing.reason || 'Analysis completed with Islamic jurisprudence',
-          risk: ing.risk || 'MEDIUM',
+          status: ing.status === 'HALAL' ? 'APPROVED' : 
+                 ing.status === 'HARAM' ? 'PROHIBITED' : 'REQUIRES_REVIEW',
+          reason: ing.reasoning || 'Analysis completed with Islamic jurisprudence',
+          risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
           category: ing.category || 'General',
           islamicReferences: ing.islamicReferences || [],
           alternativeSuggestions: ing.alternativeSuggestions || [],
-          confidence: ing.confidence || 0.8
+          confidence: ing.confidence || 70
         })),
-        warnings: result.warnings || [],
+        warnings: result.recommendations?.filter((r: string) => r.includes('prohibited') || r.includes('should not')) || [],
         recommendations: result.recommendations || [],
-        confidence: result.confidence || 85,
+        confidence: result.confidenceScore || 85,
         timestamp: new Date().toISOString(),
         analysis_time: Math.random() * 5 + 2,
         cost_savings: Math.floor(Math.random() * 100) + 50,
         time_savings: Math.floor(Math.random() * 30) + 10,
-        islamic_guidance: result.islamic_guidance || 'Analysis completed according to Islamic dietary principles',
+        islamic_guidance: result.islamic_guidance || '',
         analysis: result.analysis || 'Comprehensive halal analysis completed',
         islamicCompliance: result.islamicCompliance || {
           totalIngredients: (result.ingredients || []).length,
-          halalCount: (result.ingredients || []).filter((ing: any) => ing.status === 'APPROVED').length,
-          haramCount: (result.ingredients || []).filter((ing: any) => ing.status === 'PROHIBITED').length,
-          questionableCount: (result.ingredients || []).filter((ing: any) => ing.status === 'REQUIRES_REVIEW').length,
-          requiresVerification: 0,
+          halalCount: (result.ingredients || []).filter((ing: any) => ing.status === 'HALAL').length,
+          haramCount: (result.ingredients || []).filter((ing: any) => ing.status === 'HARAM').length,
+          questionableCount: (result.ingredients || []).filter((ing: any) => ing.status === 'MASHBOOH').length,
+          requiresVerification: (result.ingredients || []).filter((ing: any) => ing.requiresVerification === true).length,
           enhancedIngredients: 0
         }
       }
 
-      // Enhance ingredients with comprehensive Islamic context
+      // Enhance ingredients with comprehensive AI context
       transformedResult.ingredients = transformedResult.ingredients.map(ingredient => 
-        enhanceAnalysisWithIslamicContext(ingredient)
+        enhanceAnalysisWithAIContext(ingredient)
       )
 
       console.log('Comprehensive analysis completed successfully')
@@ -283,46 +289,129 @@ export default function AnalyzePage() {
         const formData = new FormData()
         formData.append('file', file)
         
-        const response = await fetch('http://localhost:3003/api/analysis/analyze-file', {
+        const response = await fetch('http://localhost:3003/api/analysis/process-enhanced-file', {
           method: 'POST',
           body: formData,
         })
         
         if (!response.ok) {
-          throw new Error(`File analysis failed: ${response.statusText}`)
+          throw new Error(`Enhanced file analysis failed: ${response.statusText}`)
         }
         
         const result = await response.json()
         console.log('Enhanced bulk analysis result:', result)
-        
-        // Transform and save bulk results with full context
-        const transformedResult: AnalysisResult = {
-          id: crypto.randomUUID(),
-          product: result.product || file.name,
-          overall: result.overall || 'REQUIRES_REVIEW',
-          ingredients: (result.ingredients || []).map((ing: any) => ({
-            name: ing.name,
-            status: ing.status || 'REQUIRES_REVIEW',
-            reason: ing.reason || 'File analysis completed with Islamic guidance',
-            risk: ing.risk || 'MEDIUM',
-            category: ing.category || 'General',
-            islamicReferences: ing.islamicReferences || [],
-            alternativeSuggestions: ing.alternativeSuggestions || [],
-            confidence: ing.confidence || 0.8
-          })),
-          warnings: result.warnings || [],
-          recommendations: result.recommendations || [],
-          confidence: result.confidence || 85,
-          timestamp: new Date().toISOString(),
-          analysis_time: Math.random() * 5 + 2,
-          cost_savings: Math.floor(Math.random() * 100) + 50,
-          time_savings: Math.floor(Math.random() * 30) + 10,
-          islamic_guidance: result.islamic_guidance || 'File processed with Islamic compliance verification',
-          analysis: result.analysis || 'Enhanced file analysis completed'
+        console.log('Result keys:', Object.keys(result))
+        console.log('Has analysisResults?', !!result.analysisResults)
+        console.log('AnalysisResults length:', result.analysisResults?.length || 0)
+        if (result.analysisResults?.[0]) {
+          console.log('First analysis result:', result.analysisResults[0])
         }
         
+        // Transform and save bulk results with full context from enhanced API
+        const transformedResults: AnalysisResult[] = []
+        
+        if (result.analysisResults && result.analysisResults.length > 0) {
+          // Process multiple products from enhanced analysis (new format)
+          console.log('Processing new analysisResults format')
+          for (const productResult of result.analysisResults) {
+            const analysis = productResult.analysis
+            
+            const transformedResult: AnalysisResult = {
+              id: crypto.randomUUID(),
+              product: productResult.productName || file.name,
+              overall: analysis.overallStatus === 'HALAL' ? 'APPROVED' : 
+                      analysis.overallStatus === 'HARAM' ? 'PROHIBITED' : 
+                      analysis.overallStatus === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 'REQUIRES_REVIEW',
+              ingredients: (analysis.ingredients || []).map((ing: any) => ({
+                name: ing.name,
+                status: ing.status === 'HALAL' ? 'APPROVED' : 
+                       ing.status === 'HARAM' ? 'PROHIBITED' : 'REQUIRES_REVIEW',
+                reason: ing.reasoning || 'Enhanced analysis completed',
+                risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
+                category: ing.category || 'General',
+                islamicReferences: ing.islamicReferences || [],
+                alternativeSuggestions: ing.alternativeSuggestions || [],
+                confidence: ing.confidence || 70
+              })),
+              warnings: analysis.recommendations?.filter((r: string) => r.includes('prohibited') || r.includes('should not')) || [],
+              recommendations: analysis.recommendations || [],
+              confidence: analysis.confidenceScore || 85,
+              timestamp: new Date().toISOString(),
+              analysis_time: Math.random() * 5 + 2,
+              cost_savings: Math.floor(Math.random() * 100) + 50,
+              time_savings: Math.floor(Math.random() * 30) + 10,
+              islamic_guidance: '',
+              analysis: `Processed ${result.originalFilename} - ${analysis.overallStatus} classification`
+            }
+            
+            transformedResults.push(transformedResult)
+          }
+        } else if (result.products && result.products.length > 0) {
+          // Handle legacy products format
+          console.log('Processing legacy products format')
+          for (const product of result.products) {
+            const analysis = product.analysis || {}
+            
+            const transformedResult: AnalysisResult = {
+              id: crypto.randomUUID(),
+              product: product.productName || file.name,
+              overall: analysis.overallStatus === 'HALAL' ? 'APPROVED' : 
+                      analysis.overallStatus === 'HARAM' ? 'PROHIBITED' : 
+                      analysis.overallStatus === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 'REQUIRES_REVIEW',
+              ingredients: (analysis.ingredients || []).map((ing: any) => ({
+                name: ing.name,
+                status: ing.status === 'HALAL' ? 'APPROVED' : 
+                       ing.status === 'HARAM' ? 'PROHIBITED' : 'REQUIRES_REVIEW',
+                reason: ing.reasoning || ing.reason || 'Analysis completed',
+                risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
+                category: ing.category || 'General',
+                islamicReferences: ing.islamicReferences || [],
+                alternativeSuggestions: ing.alternativeSuggestions || [],
+                confidence: ing.confidence || 70
+              })),
+              warnings: analysis.recommendations?.filter((r: string) => r.includes('prohibited') || r.includes('should not')) || [],
+              recommendations: analysis.recommendations || [],
+              confidence: analysis.confidenceScore || 85,
+              timestamp: new Date().toISOString(),
+              analysis_time: Math.random() * 5 + 2,
+              cost_savings: Math.floor(Math.random() * 100) + 50,
+              time_savings: Math.floor(Math.random() * 30) + 10,
+              islamic_guidance: '',
+              analysis: `Processed ${file.name} - ${analysis.overallStatus || 'Unknown'} classification`
+            }
+            
+            transformedResults.push(transformedResult)
+          }
+        } else {
+          // Fallback for no products found
+          console.log('No products found, using fallback')
+          const transformedResult: AnalysisResult = {
+            id: crypto.randomUUID(),
+            product: file.name,
+            overall: 'REQUIRES_REVIEW',
+            ingredients: [],
+            warnings: ['Could not extract ingredients from file'],
+            recommendations: ['Please verify file format and try again'],
+            confidence: 50,
+            timestamp: new Date().toISOString(),
+            analysis_time: 1,
+            cost_savings: 0,
+            time_savings: 0,
+            islamic_guidance: '',
+            analysis: 'File processing incomplete'
+          }
+          transformedResults.push(transformedResult)
+        }
+        
+        // Auto-expand new results to show detailed analysis
+        const newExpandedSet = new Set(expandedBulkResults)
+        transformedResults.forEach(result => {
+          newExpandedSet.add(result.id)
+        })
+        setExpandedBulkResults(newExpandedSet)
+        
         saveState({
-          bulkResults: [transformedResult, ...state.bulkResults]
+          bulkResults: [...transformedResults, ...state.bulkResults]
         })
         
       } else {
@@ -363,13 +452,36 @@ export default function AnalyzePage() {
     event.target.value = ''
   }
 
+  // Function to recalculate overall status based on document uploads
+  const recalculateOverallStatus = (result: AnalysisResult): 'APPROVED' | 'PROHIBITED' | 'REQUIRES_REVIEW' => {
+    const haramIngredients = result.ingredients.filter(ing => ing.status === 'PROHIBITED')
+    const mashboohIngredients = result.ingredients.filter(ing => ing.status === 'REQUIRES_REVIEW')
+    
+    // Any haram ingredient makes the product prohibited
+    if (haramIngredients.length > 0) {
+      return 'PROHIBITED'
+    }
+    
+    // Check if all mashbooh ingredients have at least 1 verification document
+    const unverifiedMashbooh = mashboohIngredients.filter(ing => 
+      !ing.verificationDocuments || ing.verificationDocuments.length === 0
+    )
+    
+    if (unverifiedMashbooh.length > 0) {
+      return 'REQUIRES_REVIEW' // Still needs verification
+    }
+    
+    return 'APPROVED' // All ingredients are halal or verified
+  }
+
   // Document upload handler for questionable ingredients
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>, analysisId: string, ingredientName: string) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     try {
-      console.log(`Uploading verification document for ${ingredientName}`)
+      console.log(`Uploading verification document for ${ingredientName} in analysis ${analysisId}`)
+      console.log('Current bulk results:', state.bulkResults.length)
       
       // Create FormData for file upload
       const formData = new FormData()
@@ -391,12 +503,21 @@ export default function AnalyzePage() {
       const result = await response.json()
       console.log('Document uploaded successfully:', result)
       
-      // Update the analysis results with the new document
+      // Show success message
+      setContextualError({
+        message: `✅ Document uploaded successfully! ${ingredientName} is now verified as Halal.`,
+        context: 'save-success'
+      })
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setContextualError(null), 3000)
+      
+      // Update the analysis results with the new document and recalculate overall status
       setState(prevState => ({
         ...prevState,
         analysisResults: prevState.analysisResults.map(analysis => {
           if (analysis.id === analysisId) {
-            return {
+            const updatedAnalysis = {
               ...analysis,
               ingredients: analysis.ingredients.map(ingredient => {
                 if (ingredient.name === ingredientName) {
@@ -412,19 +533,64 @@ export default function AnalyzePage() {
                       }
                     ],
                     verificationStatus: 'verified' as const,
-                    // Change status to APPROVED since documentation is provided
+                    // Change to APPROVED (HALAL) when document is uploaded
                     status: 'APPROVED' as const
                   }
                 }
                 return ingredient
               })
             }
+            
+            // Recalculate overall status based on all ingredients and their documentation
+            updatedAnalysis.overall = recalculateOverallStatus(updatedAnalysis)
+            
+            return updatedAnalysis
           }
           return analysis
         })
       }))
       
+      // Also update bulk results if this is a bulk analysis
+      saveState({
+        bulkResults: state.bulkResults.map(result => {
+          if (result.id === analysisId) {
+            const updatedResult = {
+              ...result,
+              ingredients: result.ingredients.map(ingredient => {
+                if (ingredient.name === ingredientName) {
+                  return {
+                    ...ingredient,
+                    verificationDocuments: [
+                      ...(ingredient.verificationDocuments || []),
+                      {
+                        id: crypto.randomUUID(),
+                        filename: file.name,
+                        uploadDate: new Date().toISOString(),
+                        type: 'certificate' as const
+                      }
+                    ],
+                    verificationStatus: 'verified' as const,
+                    // Change to APPROVED (HALAL) when document is uploaded
+                    status: 'APPROVED' as const
+                  }
+                }
+                return ingredient
+              })
+            }
+            
+            // Recalculate overall status
+            updatedResult.overall = recalculateOverallStatus(updatedResult)
+            // Add timestamp to force re-render
+            updatedResult.lastUpdated = new Date().toISOString()
+            
+            return updatedResult
+          }
+          return result
+        })
+      })
+      
       console.log(`Document uploaded for ${ingredientName}: ${file.name}`)
+      console.log('Updated bulk results:', state.bulkResults)
       
     } catch (error: any) {
       console.error('Document upload error:', error)
@@ -659,6 +825,58 @@ export default function AnalyzePage() {
     })
     setError(null)
   }
+  
+  // Delete a single analysis result
+  const deleteAnalysisResult = (resultId: string) => {
+    saveState({
+      ...state,
+      analysisResults: state.analysisResults.filter(result => result.id !== resultId)
+    })
+  }
+  
+  // Delete a bulk analysis result
+  const deleteBulkResult = (resultId: string) => {
+    saveState({
+      ...state,
+      bulkResults: state.bulkResults.filter(result => result.id !== resultId)
+    })
+  }
+
+  // Enhanced drag and drop functionality for bulk upload
+  const onDropBulk = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return
+    
+    for (const file of acceptedFiles) {
+      // Simulate file input event for existing handler
+      const event = {
+        target: { files: [file], value: '' }
+      } as React.ChangeEvent<HTMLInputElement>
+      
+      await handleFileUpload(event, true)
+    }
+  }, [])
+
+  const {
+    getRootProps: getBulkRootProps,
+    getInputProps: getBulkInputProps,
+    isDragActive: isBulkDragActive,
+    isDragAccept: isBulkDragAccept,
+    isDragReject: isBulkDragReject
+  } = useDropzone({
+    onDrop: onDropBulk,
+    accept: {
+      'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff'],
+      'application/pdf': ['.pdf'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'text/csv': ['.csv'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt']
+    },
+    maxSize: 25 * 1024 * 1024, // 25MB
+    multiple: true
+  })
 
   const clearBulkAnalysis = () => {
     saveState({
@@ -666,7 +884,10 @@ export default function AnalyzePage() {
       bulkSelectedClient: null,
       bulkClientSearch: ''
     })
+    setExpandedBulkResults(new Set())
     setError(null)
+    setBulkAnalyzing(false)
+    setUploadProgress(0)
   }
 
   const clearAllState = () => {
@@ -941,8 +1162,8 @@ export default function AnalyzePage() {
                     <span className="text-sm font-semibold text-slate-700">Important Notice</span>
                   </div>
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    This AI tool provides <strong>preliminary ingredient analysis</strong> to assist in halal compliance assessment. 
-                    Final certification decisions and religious compliance remain the <strong>responsibility of qualified Islamic scholars</strong> and authorized certification bodies. Users should verify all ingredients and seek expert consultation for official certification.
+                    This tool provides <strong>preliminary screening assistance only</strong> and is not a substitute for proper halal certification. 
+                    <strong>Islamic compliance determinations must be made by qualified scholars</strong> and authorized certification bodies. \n                    Users bear full responsibility for verification. Religious references are included only when directly applicable to specific ingredients.
                   </p>
                   <div className="mt-3 text-xs text-slate-500">
                     Always consult with certified halal authorities for definitive rulings
@@ -989,6 +1210,23 @@ export default function AnalyzePage() {
             </div>
           </div>
 
+          {/* Clear Forms Section - REMOVED */}
+          {false && (
+            <div className="flex justify-center mb-8">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={clearAllState}
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Clear All Forms</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {!state.bulkMode ? (
             /* COMPREHENSIVE SINGLE ANALYSIS MODE */
             <div className="max-w-6xl mx-auto">
@@ -1019,12 +1257,6 @@ export default function AnalyzePage() {
                         </span>
                       </div>
                       <div className="flex space-x-2">
-                        <button
-                          onClick={clearSingleAnalysis}
-                          className="text-xs px-3 py-1 bg-white border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors"
-                        >
-                          Clear Current
-                        </button>
                         <button
                           onClick={clearAllState}
                           className="text-xs px-3 py-1 bg-red-100 border border-red-300 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
@@ -1288,8 +1520,8 @@ export default function AnalyzePage() {
                       type="button"
                       onClick={() => {
                         saveState({
-                          productName: 'Halal Beef Jerky',
-                          ingredients: 'beef, salt, sugar, black pepper, garlic powder, onion powder, paprika, natural flavoring'
+                          productName: 'Pure Olive Oil',
+                          ingredients: 'extra virgin olive oil'
                         })
                       }}
                       className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl hover:from-green-100 hover:to-emerald-100 transition-all duration-200 text-left group"
@@ -1407,16 +1639,6 @@ export default function AnalyzePage() {
                     )}
                   </button>
 
-                  <button
-                    onClick={clearSingleAnalysis}
-                    disabled={analyzing}
-                    className="px-6 py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center space-x-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>Clear Form</span>
-                  </button>
                 </div>
               </div>
 
@@ -1488,17 +1710,29 @@ export default function AnalyzePage() {
                                 count + (ing.verificationDocuments?.length || 0), 0)
                               return (
                                 <div className="relative">
-                                  <button
-                                    onClick={() => saveToApplications(result)}
-                                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 font-medium text-sm flex items-center space-x-2"
-                                  >
-                                    <span>Save to {terminology.pipelineName}</span>
-                                    {documentCount > 0 && (
-                                      <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
-                                        +{documentCount} docs
-                                      </span>
-                                    )}
-                                  </button>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() => saveToApplications(result)}
+                                      className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 font-medium text-sm flex items-center space-x-2"
+                                    >
+                                      <span>Save to {terminology.pipelineName}</span>
+                                      {documentCount > 0 && (
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
+                                          +{documentCount} docs
+                                        </span>
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => deleteAnalysisResult(result.id)}
+                                      className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-medium text-sm flex items-center space-x-2"
+                                      title="Delete this analysis"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
                                   
                                   {/* Contextual Error/Success Display */}
                                   {contextualError && (contextualError.context === 'save-button' || contextualError.context === 'save-success') && (
@@ -1590,16 +1824,16 @@ export default function AnalyzePage() {
                               </svg>
                               <h5 className="font-bold text-emerald-900 text-lg">Islamic Compliance Dashboard</h5>
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                              <div className="text-center p-4 bg-white/80 rounded-xl border border-emerald-200">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="text-center p-4 bg-white/80 rounded-xl border border-purple-200">
                                 <div className="flex items-center justify-center mb-2">
-                                  <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                   </svg>
                                 </div>
-                                <div className="text-3xl font-bold text-emerald-600">{result.islamicCompliance.totalIngredients}</div>
-                                <div className="text-sm text-emerald-800 font-semibold">Total</div>
-                                <div className="text-xs text-emerald-600 mt-1">Ingredients</div>
+                                <div className="text-3xl font-bold text-purple-600">{result.islamicCompliance.totalIngredients}</div>
+                                <div className="text-sm text-purple-800 font-semibold">Total</div>
+                                <div className="text-xs text-purple-600 mt-1">Ingredients</div>
                               </div>
                               <div className="text-center p-4 bg-white/80 rounded-xl border border-green-200">
                                 <div className="flex items-center justify-center mb-2">
@@ -1630,16 +1864,6 @@ export default function AnalyzePage() {
                                 <div className="text-3xl font-bold text-yellow-600">{result.islamicCompliance.questionableCount}</div>
                                 <div className="text-sm text-yellow-800 font-semibold">Mashbooh</div>
                                 <div className="text-xs text-yellow-600 mt-1">Review Needed</div>
-                              </div>
-                              <div className="text-center p-4 bg-white/80 rounded-xl border border-blue-200">
-                                <div className="flex items-center justify-center mb-2">
-                                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                  </svg>
-                                </div>
-                                <div className="text-3xl font-bold text-blue-600">{result.islamicCompliance.enhancedIngredients}</div>
-                                <div className="text-sm text-blue-800 font-semibold">Enhanced</div>
-                                <div className="text-xs text-blue-600 mt-1">With References</div>
                               </div>
                             </div>
                           </div>
@@ -1676,21 +1900,6 @@ export default function AnalyzePage() {
                                 
                                 <p className="text-sm text-slate-700 mb-3 leading-relaxed font-medium">{ingredient.reason}</p>
                                 
-                                {ingredient.islamicReferences && ingredient.islamicReferences.length > 0 && (
-                                  <div className="mb-3 p-3 bg-white/60 rounded-lg border border-slate-200">
-                                    <div className="text-sm text-slate-600">
-                                      <div className="flex items-center space-x-2 mb-1">
-                                        <svg className="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                        </svg>
-                                        <span className="font-bold text-slate-800">Islamic References:</span>
-                                      </div>
-                                      <div className="mt-1 text-slate-700">
-                                        {ingredient.islamicReferences.map(ref => ref.reference).join(', ')}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
                                 
                                 {ingredient.alternativeSuggestions && ingredient.alternativeSuggestions.length > 0 && (
                                   <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -2003,18 +2212,6 @@ export default function AnalyzePage() {
                           </div>
                         )}
 
-                        {/* Islamic Guidance */}
-                        {result.islamic_guidance && (
-                          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <svg className="w-5 h-5 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                              </svg>
-                              <h5 className="font-semibold text-blue-800">Islamic Guidance</h5>
-                            </div>
-                            <p className="text-sm text-blue-700">{result.islamic_guidance}</p>
-                          </div>
-                        )}
                       </div>
                     )
                   })}
@@ -2023,204 +2220,543 @@ export default function AnalyzePage() {
             </div>
           ) : (
             /* COMPREHENSIVE BULK ANALYSIS MODE */
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/60 p-10">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="max-w-6xl mx-auto">
+              {/* Premium Analysis Form - Same as Single Analysis */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/60 p-10 mb-10 hover:shadow-3xl transition-all duration-300">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-slate-800">Bulk File Analysis</h3>
+                      <p className="text-slate-600">Upload files for comprehensive batch processing with advanced AI analysis</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Client Selection Section - Same styling as Single Analysis */}
+                {config.features.clientManagement && (
+                  <div className="grid md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                      <label htmlFor="bulk-client-search" className="block text-sm font-semibold text-slate-700 mb-3 flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Select {terminology.clientName} for Bulk Analysis</span>
+                      </label>
+                      
+                      <div className="relative">
+                        <input
+                          id="bulk-client-search"
+                          type="text"
+                          value={state.bulkClientSearch}
+                          onChange={(e) => saveState({ bulkClientSearch: e.target.value })}
+                          placeholder={`Search ${terminology.clientName.toLowerCase()}...`}
+                          className="w-full px-4 py-3 pr-10 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm"
+                        />
+                        <svg className="absolute right-3 top-3 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        
+                        {state.bulkClientSearch && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                            {filteredBulkClients.map(client => (
+                              <button
+                                key={client.id}
+                                onClick={() => saveState({ bulkSelectedClient: client, bulkClientSearch: '' })}
+                                className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0 first:rounded-t-xl last:rounded-b-xl"
+                              >
+                                <div className="font-medium text-slate-900">{client.name}</div>
+                                <div className="text-sm text-slate-500">{client.company}</div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {state.bulkSelectedClient && (
+                        <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-purple-900">{state.bulkSelectedClient.name}</div>
+                              <div className="text-sm text-purple-700">{state.bulkSelectedClient.company}</div>
+                            </div>
+                            <button
+                              onClick={() => saveState({ bulkSelectedClient: null })}
+                              className="text-purple-600 hover:text-purple-800 transition-colors p-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Info Panel - Same as Single Analysis */}
+                    <div className="space-y-4">
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-start space-x-3">
+                          <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div>
+                            <h4 className="font-semibold text-blue-900 mb-1">Bulk Analysis Benefits</h4>
+                            <p className="text-sm text-blue-700">Process multiple files simultaneously with AI-powered extraction and comprehensive Islamic jurisprudence analysis.</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                        <div className="flex items-start space-x-3">
+                          <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div>
+                            <h4 className="font-semibold text-green-900 mb-1">Smart File Processing</h4>
+                            <p className="text-sm text-green-700">Supports 20+ file formats including images, PDFs, Excel, Word documents with OCR capabilities.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* File Upload Section - Same styling as Single Analysis */}
+                <div className="mb-8">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-800 mb-4">Bulk File Analysis</h3>
-                  <p className="text-slate-600 mb-8">Upload files for comprehensive batch processing with advanced AI analysis and Islamic jurisprudence integration</p>
+                    <span>Upload Files for Bulk Analysis</span>
+                  </label>
                   
-                  {/* Bulk Client Selection */}
-                  <div className="mb-6">
-                    <input
-                      type="text"
-                      value={state.bulkClientSearch}
-                      onChange={(e) => saveState({ bulkClientSearch: e.target.value })}
-                      placeholder={`Search and select ${terminology.clientName.toLowerCase()} for bulk analysis...`}
-                      className="w-full max-w-md mx-auto px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
-                    />
+                  {/* Enhanced Drag & Drop Upload Zone */}
+                  <div
+                    {...getBulkRootProps()}
+                    className={`
+                      relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300
+                      ${isBulkDragActive 
+                        ? isBulkDragAccept 
+                          ? 'border-green-400 bg-green-50/50' 
+                          : 'border-red-400 bg-red-50/50'
+                        : 'border-slate-300 hover:border-purple-400 hover:bg-purple-50/30'
+                      }
+                      ${bulkAnalyzing ? 'cursor-not-allowed opacity-60' : ''}
+                    `}
+                  >
+                    <input {...getBulkInputProps()} disabled={bulkAnalyzing} />
                     
-                    {state.bulkClientSearch && (
-                      <div className="mt-2 max-w-md mx-auto bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-                        {filteredBulkClients.map(client => (
-                          <button
-                            key={client.id}
-                            onClick={() => saveState({ bulkSelectedClient: client, bulkClientSearch: '' })}
-                            className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
-                          >
-                            <div className="font-medium text-slate-900">{client.name}</div>
-                            <div className="text-sm text-slate-500">{client.company}</div>
-                          </button>
-                        ))}
+                    {bulkAnalyzing ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-center">
+                          <svg className="animate-spin w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                        <p className="text-purple-800 font-medium">Processing Files...</p>
+                        <p className="text-sm text-purple-600">Using AI to extract and analyze ingredients</p>
                       </div>
-                    )}
-                    
-                    {state.bulkSelectedClient && (
-                      <div className="mt-3 max-w-md mx-auto p-3 bg-purple-50 border border-purple-200 rounded-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm">
-                            <div className="font-medium text-purple-900">{state.bulkSelectedClient.name}</div>
-                            <div className="text-purple-700">{state.bulkSelectedClient.company}</div>
-                          </div>
-                          <button
-                            onClick={() => saveState({ bulkSelectedClient: null })}
-                            className="text-purple-600 hover:text-purple-800 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-center">
+                          <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100">
+                            <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                             </svg>
-                          </button>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-lg font-semibold text-slate-800 mb-2">
+                            {isBulkDragActive 
+                              ? isBulkDragAccept 
+                                ? 'Drop files to analyze' 
+                                : 'Invalid file type'
+                              : 'Ultra-Smart Bulk Analysis'
+                            }
+                          </h4>
+                          
+                          {!isBulkDragActive && (
+                            <>
+                              <p className="text-slate-600 mb-3">
+                                Drag & drop files or click to browse
+                              </p>
+                              <p className="text-sm text-slate-500 mb-4">
+                                AI-powered extraction from images, PDFs, Excel, Word, and more
+                              </p>
+                              
+                              {/* Supported File Types */}
+                              <div className="flex flex-wrap justify-center gap-2 mb-3">
+                                {[
+                                  { icon: '🖼️', label: 'Images' },
+                                  { icon: '📄', label: 'PDFs' },
+                                  { icon: '📊', label: 'Excel' },
+                                  { icon: '📝', label: 'Word' },
+                                  { icon: '📋', label: 'CSV' }
+                                ].map((type, index) => (
+                                  <span key={index} className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-700">
+                                    <span className="mr-1">{type.icon}</span>
+                                    {type.label}
+                                  </span>
+                                ))}
+                              </div>
+                              
+                              <p className="text-xs text-slate-400">
+                                Maximum 25MB per file • Supports 20+ file types • Ultra accurate OCR
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
-                  
-                  <button
-                    onClick={() => bulkFileInputRef.current?.click()}
-                    disabled={bulkAnalyzing}
-                    className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50"
-                  >
-                    {bulkAnalyzing ? (
-                      <>
-                        <svg className="animate-spin w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Processing Files...</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        <span>Choose Files to Analyze</span>
-                      </>
-                    )}
-                  </button>
-                  
-                  <input
-                    type="file"
-                    ref={bulkFileInputRef}
-                    onChange={(e) => handleFileUpload(e, true)}
-                    accept=".csv,.xlsx,.xls,.pdf,.jpg,.jpeg,.png,.gif,.webp,.tiff,.bmp,.doc,.docx,.txt"
-                    className="hidden"
-                    multiple
-                  />
-
-                  <div className="mt-6 text-sm text-slate-500">
-                    Supported formats: Images (JPG, PNG, GIF, WEBP, TIFF, BMP), PDFs, Excel files (XLS, XLSX), Word documents (DOC, DOCX), CSV, and text files
-                  </div>
+                </div>
                 </div>
 
-                {/* Bulk Results Display */}
-                {state.bulkResults.length > 0 && (
-                  <div className="mt-10 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xl font-bold text-slate-800">Bulk Analysis Results</h4>
-                      <button
-                        onClick={clearBulkAnalysis}
-                        className="px-4 py-2 bg-red-100 border border-red-300 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
-                      >
-                        Clear Results
-                      </button>
+              {/* Analysis Results Section - Same styling as Single Analysis */}
+              {state.bulkResults.length > 0 && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-2xl font-bold text-slate-800">Analysis Results</h3>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2 text-sm text-slate-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span>{state.bulkResults.length} analysis{state.bulkResults.length !== 1 ? 'es' : ''}</span>
+                      </div>
+                      {state.bulkResults.length > 1 && state.bulkSelectedClient && (
+                        <div className="flex items-center space-x-3">
+                          <div className="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                            Client: {state.bulkSelectedClient.name}
+                          </div>
+                          <button
+                            onClick={() => {
+                              // Save all bulk results
+                              state.bulkResults.forEach(result => {
+                                saveToApplications(result, state.bulkSelectedClient)
+                              })
+                            }}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium text-sm flex items-center space-x-2 shadow-md hover:shadow-lg"
+                            title="Save all analysis results to pipeline (Ctrl+S)"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <span>Save All to {terminology.pipelineName}</span>
+                            <span className="text-xs opacity-75">(Ctrl+S)</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
+                  </div>
 
-                    {state.bulkResults.map((result, index) => {
-                      const bulkStatusDisplay = getStatusDisplay(result.overall)
-                      const bulkValueMetrics = calculateValueMetrics(result)
-                      
-                      return (
-                        <div key={result.id} className="p-6 bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-2xl shadow-lg">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-3">
-                              <div className={`px-4 py-2 rounded-xl font-bold text-sm shadow-md ${bulkStatusDisplay.color} flex items-center space-x-2`}>
-                                {bulkStatusDisplay.icon}
-                                <span>{bulkStatusDisplay.label}</span>
-                              </div>
-                              <div>
-                                <h5 className="font-bold text-slate-800">{result.product}</h5>
-                                <p className="text-sm text-slate-500">{formatTimestamp(result.timestamp)}</p>
-                              </div>
+                  <div className="space-y-8">
+                  {state.bulkResults.map((result, index) => {
+                    const statusDisplay = getStatusDisplay(result.overall)
+                    const valueMetrics = calculateValueMetrics(result)
+                    const pipelineStatus = determineApplicationStatus(result)
+                    
+                    return (
+                      <div key={result.id} className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white/60 p-8 hover:shadow-2xl transition-all duration-300">
+                        {/* Enhanced Result Header */}
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center space-x-4">
+                            <div className={`px-6 py-3 rounded-2xl font-bold text-lg shadow-lg ${statusDisplay.color} flex items-center space-x-2`}>
+                              <span className="text-xl">{statusDisplay.icon}</span>
+                              <span>{statusDisplay.label}</span>
                             </div>
+                            <div>
+                              <h4 className="text-xl font-bold text-slate-800">{result.product}</h4>
+                              <p className="text-sm text-slate-500">{formatTimestamp(result.timestamp)}</p>
+                            </div>
+                            {/* Pipeline Status Indicator */}
+                            {state.bulkSelectedClient && (
+                              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                pipelineStatus === 'approved' 
+                                  ? 'bg-green-100 text-green-800 border border-green-300' 
+                                  : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                              }`}>
+                                {pipelineStatus === 'approved' ? '✅ Ready for Approval' : '🔍 Needs Documentation'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-4">
                             {(() => {
                               const documentCount = result.ingredients.reduce((count, ing) => 
                                 count + (ing.verificationDocuments?.length || 0), 0)
                               return (
-                                <button
-                                  onClick={() => saveToApplications(result, state.bulkSelectedClient)}
-                                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 font-medium text-sm flex items-center space-x-2"
-                                >
-                                  <span>Save to {terminology.itemNamePlural}</span>
-                                  {documentCount > 0 && (
-                                    <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
-                                      +{documentCount}
-                                    </span>
-                                  )}
-                                </button>
+                                <div className="relative">
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() => saveToApplications(result, state.bulkSelectedClient)}
+                                      className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 font-medium text-sm flex items-center space-x-2"
+                                    >
+                                      <span>Save to {terminology.pipelineName}</span>
+                                      {documentCount > 0 && (
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
+                                          +{documentCount} docs
+                                        </span>
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => deleteBulkResult(result.id)}
+                                      className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-medium text-sm flex items-center space-x-2"
+                                      title="Delete this analysis"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
+                                </div>
                               )
                             })()}
                           </div>
-
-                          <div className="grid md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <h6 className="font-semibold text-slate-700 mb-2">Ingredients ({result.ingredients.length})</h6>
-                              <div className="space-y-1 max-h-32 overflow-y-auto">
-                                {result.ingredients.slice(0, 5).map((ing, idx) => {
-                                  const ingStatus = getStatusDisplay(ing.status)
-                                  return (
-                                    <div key={idx} className={`px-3 py-2 rounded-lg text-xs font-medium ${ingStatus.bgColor} border flex items-center space-x-2`}>
-                                      {ingStatus.icon}
-                                      <span>{ing.name}</span>
-                                      <span className="text-xs opacity-75">- {ingStatus.label}</span>
-                                    </div>
-                                  )
-                                })}
-                                {result.ingredients.length > 5 && (
-                                  <div className="text-xs text-slate-500 font-medium">...and {result.ingredients.length - 5} more ingredients</div>
-                                )}
-                              </div>
+                        </div>
+                          
+                        {/* Value Metrics Cards */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-6">
+                          <div className="flex items-center space-x-2 mb-4">
+                            <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h2a1 1 0 100-2H6V5z" clipRule="evenodd" />
+                            </svg>
+                            <h4 className="font-bold text-blue-900">Analysis Value Metrics</h4>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white rounded-xl p-4 text-center">
+                              <svg className="w-8 h-8 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="text-2xl font-bold text-green-700">{valueMetrics.timeSaved}</div>
+                              <div className="text-sm text-slate-600">Minutes Saved</div>
+                              <div className="text-xs text-slate-500 mt-1">vs Manual Analysis</div>
                             </div>
                             
-                            <div>
-                              <div className="flex items-center space-x-2 mb-2">
-                                <svg className="w-4 h-4 text-slate-700" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-                                  <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
-                                </svg>
-                                <h6 className="font-semibold text-slate-700">Value Metrics</h6>
+                            <div className="bg-white rounded-xl p-4 text-center">
+                              <svg className="w-8 h-8 text-blue-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                              </svg>
+                              <div className="text-2xl font-bold text-blue-700">€{valueMetrics.costSaved.toFixed(2)}</div>
+                              <div className="text-sm text-slate-600">Cost Savings</div>
+                              <div className="text-xs text-slate-500 mt-1">vs Consultation Fees</div>
+                            </div>
+                            
+                            <div className="bg-white rounded-xl p-4 text-center">
+                              <svg className="w-8 h-8 text-purple-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              <div className="text-2xl font-bold text-purple-700">{valueMetrics.analysisTime}s</div>
+                              <div className="text-sm text-slate-600">Analysis Time</div>
+                              <div className="text-xs text-slate-500 mt-1">AI Processing</div>
+                            </div>
+
+                            </div>
+                          </div>
+                          
+                          {/* Islamic Compliance Dashboard - Same as Single Analysis */}
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6">
+                            <div className="flex items-center space-x-2 mb-4">
+                              <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <h4 className="font-bold text-green-900">Islamic Compliance Dashboard</h4>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 gap-3">
+                              <div className="bg-white rounded-xl p-4 text-center border border-purple-200">
+                                <div className="flex items-center justify-center mb-2">
+                                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                  </svg>
+                                </div>
+                                <div className="text-3xl font-bold text-purple-700">{result.ingredients.length}</div>
+                                <div className="text-sm text-purple-600">Total</div>
+                                <div className="text-xs text-purple-500">Ingredients</div>
                               </div>
-                              <div className="text-sm text-slate-600 space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  <span><strong>{bulkValueMetrics.timeSaved} min</strong> saved</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                                  </svg>
-                                  <span><strong>€{bulkValueMetrics.costSaved}</strong> saved</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                  </svg>
-                                  <span><strong>{bulkValueMetrics.analysisTime}s</strong> processing</span>
-                                </div>
+                              
+                              <div className="bg-green-100 rounded-xl p-4 text-center">
+                                <svg className="w-6 h-6 text-green-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <div className="text-3xl font-bold text-green-700">{result.ingredients.filter(i => i.status === 'APPROVED').length}</div>
+                                <div className="text-sm text-green-600">Halal</div>
+                                <div className="text-xs text-green-500">Certified</div>
+                              </div>
+                              
+                              <div className="bg-red-100 rounded-xl p-4 text-center">
+                                <svg className="w-6 h-6 text-red-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                <div className="text-3xl font-bold text-red-700">{result.ingredients.filter(i => i.status === 'PROHIBITED').length}</div>
+                                <div className="text-sm text-red-600">Haram</div>
+                                <div className="text-xs text-red-500">Prohibited</div>
+                              </div>
+                              
+                              <div className="bg-yellow-100 rounded-xl p-4 text-center">
+                                <svg className="w-6 h-6 text-yellow-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div className="text-3xl font-bold text-yellow-700">{result.ingredients.filter(i => i.status === 'REQUIRES_REVIEW').length}</div>
+                                <div className="text-sm text-yellow-600">Mashbooh</div>
+                                <div className="text-xs text-yellow-500">Review Needed</div>
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Detailed Ingredient Analysis */}
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center space-x-2">
+                                <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <h4 className="font-bold text-slate-800">Detailed Ingredient Analysis</h4>
+                              </div>
+                            </div>
+                            
+                            <div className="grid gap-4">
+                              {result.ingredients.map((ing, idx) => {
+                                const ingStatus = getStatusDisplay(ing.status)
+                                const riskDisplay = getRiskDisplay(ing.risk)
+                                
+                                return (
+                                  <div key={idx} className={`p-6 rounded-2xl border-2 shadow-md hover:shadow-lg transition-all duration-200 ${ingStatus.bgColor}`}>
+                                    <div className="flex items-center justify-between mb-3">
+                                      <span className="font-bold text-lg text-slate-800">{ing.name}</span>
+                                      <div className="flex items-center space-x-3">
+                                        <div className={`px-4 py-2 rounded-xl font-bold text-sm shadow-md ${ingStatus.color} flex items-center space-x-2`}>
+                                          {ingStatus.icon}
+                                          <span>{ingStatus.label}</span>
+                                        </div>
+                                        <div className={`px-3 py-1 rounded-lg text-sm font-medium ${riskDisplay.color} bg-white/80 border flex items-center space-x-2`}>
+                                          {riskDisplay.icon}
+                                          <span>{riskDisplay.label}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <p className="text-sm text-slate-700 mb-3 leading-relaxed font-medium">{ing.reason}</p>
+                                    
+                                    <div className="space-y-4 pt-4 border-t border-green-200">
+                                        
+                                        
+                                        {/* Alternative Suggestions */}
+                                        {ing.alternativeSuggestions && ing.alternativeSuggestions.length > 0 && (
+                                          <div>
+                                            <h6 className="font-semibold text-slate-700 mb-2">Halal Alternatives:</h6>
+                                            <div className="flex flex-wrap gap-2">
+                                              {ing.alternativeSuggestions.map((alt, altIdx) => (
+                                                <span key={altIdx} className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                                                  {alt}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                        
+                                        {/* Document Upload for Mashbooh */}
+                                        {ing.status === 'REQUIRES_REVIEW' && (
+                                          <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                                            <div className="flex items-center space-x-2 mb-3">
+                                              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                              </svg>
+                                              <h6 className="font-semibold text-yellow-800">Verification Required</h6>
+                                            </div>
+                                            <p className="text-sm text-yellow-700 mb-3">Upload verified halal documentation: certificates, supplier letters, lab reports</p>
+                                            
+                                            <div className="border-2 border-dashed border-yellow-300 rounded-lg p-4 text-center">
+                                              <svg className="w-8 h-8 text-yellow-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                              </svg>
+                                              <div className="flex items-center justify-center space-x-2">
+                                                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <p className="font-semibold text-yellow-700">Documentation Required</p>
+                                              </div>
+                                              <p className="text-sm text-yellow-600 mt-1">This ingredient requires verification documentation</p>
+                                              
+                                              <label className="mt-3 inline-flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 cursor-pointer transition-colors">
+                                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                Upload Verification Document
+                                                <input
+                                                  type="file"
+                                                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                                  onChange={(e) => handleDocumentUpload(e, result.id, ing.name)}
+                                                  className="hidden"
+                                                />
+                                              </label>
+                                            </div>
+                                            
+                                            {/* Show uploaded documents */}
+                                            {ing.verificationDocuments && ing.verificationDocuments.length > 0 && (
+                                              <div className="mt-3">
+                                                <h7 className="text-sm font-semibold text-yellow-800 mb-2">Uploaded Documents:</h7>
+                                                <div className="space-y-1">
+                                                  {ing.verificationDocuments.map((doc, docIdx) => (
+                                                    <div key={docIdx} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                                                      <div className="flex items-center space-x-2">
+                                                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                        <span className="text-sm font-medium">{doc.filename}</span>
+                                                      </div>
+                                                      <span className="text-xs text-slate-500">{doc.type}</span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                          
+                          {/* Recommendations for Bulk Analysis */}
+                          {(result.recommendations?.length > 0) && (
+                            <div className="mt-6 grid md:grid-cols-1 gap-6">
+                              {result.recommendations.length > 0 && (
+                                <div>
+                                  <div className="flex items-center space-x-2 mb-3">
+                                    <svg className="w-5 h-5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <h5 className="font-semibold text-emerald-800">Recommendations</h5>
+                                  </div>
+                                  <ul className="space-y-2">
+                                    {result.recommendations.map((rec, idx) => (
+                                      <li key={idx} className="text-sm text-emerald-700 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                                        {rec}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>

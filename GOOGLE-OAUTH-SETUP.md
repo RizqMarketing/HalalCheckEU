@@ -117,5 +117,3 @@ When you go live, update:
 
 **Note**: You can set this up anytime. Email/password authentication will work fine for initial development and testing.
 
-client ID : 91522082990-iih27uvi8d29o1cclmp3p331pk2g1er6.apps.googleusercontent.com
-Client Secret: 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

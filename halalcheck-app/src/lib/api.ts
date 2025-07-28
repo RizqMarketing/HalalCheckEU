@@ -1,7 +1,7 @@
 // HalalCheck AI - API Service Layer
 // Handles all backend API communications with proper error handling
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {

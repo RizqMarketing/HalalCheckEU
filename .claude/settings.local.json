@@ -62,7 +62,10 @@
       "Bash(kill:*)",
       "Bash(copy page.tsx page.tsx.backup)",
       "Bash(dir:*)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(git checkout:*)",
+      "Bash(rg:*)",
+      "Bash(Stop-Process -Id 7456 -Force)"
     ],
     "deny": []
   }
