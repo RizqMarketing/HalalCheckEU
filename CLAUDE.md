@@ -2,33 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🚨🚨🚨 CRITICAL SECURITY NOTICE - READ FIRST 🚨🚨🚨
-
-**ABSOLUTE SECURITY REQUIREMENT**: This codebase is for DEFENSIVE SECURITY and HALAL COMPLIANCE ONLY.
-
-### ⛔ STRICTLY PROHIBITED:
-- **NEVER** create, modify, or improve any code that could be used maliciously
-- **NEVER** implement offensive security tools or exploits
-- **NEVER** create vulnerability exploitation code
-- **NEVER** build attack vectors or penetration testing tools
-- **NEVER** modify security controls or authentication mechanisms to weaken them
-
-### ✅ ALLOWED ACTIVITIES:
-- Security analysis and vulnerability explanations (educational only)
-- Defensive security implementations (firewalls, auth, encryption)
-- Detection rules and monitoring systems
-- Security documentation and best practices
-- Halal compliance verification systems
-- Religious dietary law implementations
-
-### 🛡️ SECURITY PRINCIPLES:
-1. **Defense Only**: All security work must be defensive in nature
-2. **Compliance First**: Focus on halal compliance and religious requirements
-3. **Data Protection**: Maintain strict GDPR and privacy standards
-4. **Authentication**: Only strengthen, never weaken auth systems
-5. **Audit Trail**: All actions must be logged and traceable
-
-**REMINDER**: If asked to create anything potentially harmful, you MUST refuse and explain this is a defensive security and compliance platform only.
 
 ---
 
@@ -339,6 +312,11 @@ The project has been recently cleaned and optimized:
 - ✅ **CSV processing** - Professional structured data parsing with multiple column format support
 - ✅ **Dependencies refreshed** - Clean npm installations with csv-parse library
 - ✅ **UI consistency** - Premium styling applied to both single and bulk analysis sections
+- ✅ **Status mapping fixes** - PROHIBITED ingredients now correctly display as red "Haram - Prohibited"
+- ✅ **Islamic compliance dashboard** - Accurate counting of halal/haram/mashbooh ingredients
+- ✅ **Overall analysis status** - Properly calculated from ingredient statuses (PROHIBITED overrides all)
+- ✅ **End-to-end data flow** - Consistent status handling from GPT-4 → Frontend → Dashboard
+- ✅ **Purple alternatives styling** - Halal alternatives now use clean purple design instead of green
 
 ### Active Components
 **Currently Used:**

@@ -26,14 +26,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(`https://${request.headers.get('host')}${request.nextUrl.pathname}`)
   }
 
-  // Content Security Policy (relaxed for development, blocks wallet extensions)
+  // Content Security Policy (DISABLED FOR TESTING)
+  // Uncomment the lines below to re-enable CSP for production
+  /*
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://js.stripe.com https://checkout.stripe.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https://*.supabase.co https://pllewdnptglldpkuexxt.supabase.co",
-    "connect-src 'self' http://localhost:3003 https://pllewdnptglldpkuexxt.supabase.co https://api.openai.com https://api.stripe.com",
+    "connect-src 'self' http://localhost:8000 https://pllewdnptglldpkuexxt.supabase.co https://api.openai.com https://api.stripe.com",
     "frame-src https://js.stripe.com https://checkout.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -42,6 +44,7 @@ export async function middleware(request: NextRequest) {
   ].join('; ')
   
   response.headers.set('Content-Security-Policy', csp)
+  */
 
   // Mock authentication for development (bypass Supabase)
   let user = null

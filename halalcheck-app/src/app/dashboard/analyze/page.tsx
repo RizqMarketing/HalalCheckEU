@@ -223,6 +223,37 @@ export default function AnalyzePage() {
     })
   }, [])
 
+  // Clear cache function for testing
+  const clearAnalysisCache = useCallback(() => {
+    localStorage.removeItem('halalcheck_analysis_state')
+    setState({
+      productName: '',
+      ingredients: '',
+      selectedClient: null,
+      analysisResults: [],
+      bulkMode: false,
+      bulkResults: [],
+      bulkSelectedClient: null,
+      bulkClientSearch: '',
+      clientSearch: '',
+      lastSaved: Date.now(),
+      showCreateClient: false,
+      newClient: {
+        name: '',
+        company: '',
+        email: '',
+        phone: ''
+      }
+    })
+    console.log('🔄 Analysis cache cleared - fresh analysis will be performed')
+    alert('Cache cleared! Try analyzing red wine again - it should now show as PROHIBITED (red)')
+  }, [])
+
+  // Expose cache clearing function globally for debugging
+  if (typeof window !== 'undefined') {
+    (window as any).clearAnalysisCache = clearAnalysisCache
+  }
+
   // Enhanced analyze ingredients function with full Islamic context
   const analyzeIngredients = async () => {
     if (!state.productName.trim() || !state.ingredients.trim()) {
@@ -246,23 +277,38 @@ export default function AnalyzePage() {
       const actualAnalysisTime = result.processingTime || 3.2
       
       // Enhanced transformation with full Islamic context
+      const transformedIngredients = (result.ingredients || []).map((ing: any) => ({
+        name: ing.name,
+        status: ing.status === 'HALAL' ? 'APPROVED' : 
+               ing.status === 'HARAM' || ing.status === 'PROHIBITED' ? 'PROHIBITED' : 
+               ing.status === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 
+               ing.status,
+        reason: ing.reasoning || 'Analysis completed with Islamic jurisprudence',
+        risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
+        category: ing.category || 'General',
+        islamicReferences: ing.islamicReferences || [],
+        alternativeSuggestions: ing.alternativeSuggestions || [],
+        confidence: ing.confidence || 70
+      }))
+
+      // Calculate overall status based on transformed ingredients
+      const hasProhibited = transformedIngredients.some(ing => ing.status === 'PROHIBITED')
+      const hasMashbooh = transformedIngredients.some(ing => ing.status === 'REQUIRES_REVIEW')
+      
+      let overallStatus: 'APPROVED' | 'PROHIBITED' | 'REQUIRES_REVIEW'
+      if (hasProhibited) {
+        overallStatus = 'PROHIBITED'
+      } else if (hasMashbooh) {
+        overallStatus = 'REQUIRES_REVIEW'
+      } else {
+        overallStatus = 'APPROVED'
+      }
+
       const transformedResult: AnalysisResult = {
         id: crypto.randomUUID(),
         product: state.productName,
-        overall: result.overallStatus === 'HALAL' ? 'APPROVED' : 
-                result.overallStatus === 'HARAM' ? 'PROHIBITED' : 
-                result.overallStatus === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 'REQUIRES_REVIEW',
-        ingredients: (result.ingredients || []).map((ing: any) => ({
-          name: ing.name,
-          status: ing.status === 'HALAL' ? 'APPROVED' : 
-                 ing.status === 'HARAM' ? 'PROHIBITED' : 'REQUIRES_REVIEW',
-          reason: ing.reasoning || 'Analysis completed with Islamic jurisprudence',
-          risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
-          category: ing.category || 'General',
-          islamicReferences: ing.islamicReferences || [],
-          alternativeSuggestions: ing.alternativeSuggestions || [],
-          confidence: ing.confidence || 70
-        })),
+        overall: overallStatus,
+        ingredients: transformedIngredients,
         warnings: result.recommendations?.filter((r: string) => r.includes('prohibited') || r.includes('should not')) || [],
         recommendations: result.recommendations || [],
         confidence: result.confidenceScore || 85,
@@ -272,12 +318,12 @@ export default function AnalyzePage() {
         time_savings: Math.floor(Math.random() * 30) + 10,
         islamic_guidance: result.islamic_guidance || '',
         analysis: result.analysis || 'Comprehensive halal analysis completed',
-        islamicCompliance: result.islamicCompliance || {
-          totalIngredients: (result.ingredients || []).length,
-          halalCount: (result.ingredients || []).filter((ing: any) => ing.status === 'HALAL').length,
-          haramCount: (result.ingredients || []).filter((ing: any) => ing.status === 'HARAM').length,
-          questionableCount: (result.ingredients || []).filter((ing: any) => ing.status === 'MASHBOOH').length,
-          requiresVerification: (result.ingredients || []).filter((ing: any) => ing.status === 'MASHBOOH').length,
+        islamicCompliance: {
+          totalIngredients: 0, // Will be calculated after ingredient transformation
+          halalCount: 0,
+          haramCount: 0,
+          questionableCount: 0,
+          requiresVerification: 0,
           enhancedIngredients: 0
         }
       }
@@ -286,6 +332,16 @@ export default function AnalyzePage() {
       transformedResult.ingredients = transformedResult.ingredients.map(ingredient => 
         enhanceAnalysisWithAIContext(ingredient)
       )
+
+      // Calculate Islamic compliance after ingredient transformation
+      transformedResult.islamicCompliance = {
+        totalIngredients: transformedResult.ingredients.length,
+        halalCount: transformedResult.ingredients.filter(ing => ing.status === 'APPROVED').length,
+        haramCount: transformedResult.ingredients.filter(ing => ing.status === 'PROHIBITED').length,
+        questionableCount: transformedResult.ingredients.filter(ing => ing.status === 'REQUIRES_REVIEW').length,
+        requiresVerification: transformedResult.ingredients.filter(ing => ing.status === 'REQUIRES_REVIEW').length,
+        enhancedIngredients: transformedResult.ingredients.length
+      }
 
       console.log('Comprehensive analysis completed successfully')
       
@@ -352,23 +408,39 @@ export default function AnalyzePage() {
           for (const productResult of result.analysisResults) {
             const analysis = productResult.analysis
             
+            // Transform ingredients first
+            const transformedIngredients = (analysis.ingredients || []).map((ing: any) => ({
+              name: ing.name,
+              status: ing.status === 'HALAL' ? 'APPROVED' : 
+                     ing.status === 'HARAM' || ing.status === 'PROHIBITED' ? 'PROHIBITED' : 
+                     ing.status === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 
+                     ing.status,
+              reason: ing.reasoning || 'Enhanced analysis completed',
+              risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
+              category: ing.category || 'General',
+              islamicReferences: ing.islamicReferences || [],
+              alternativeSuggestions: ing.alternativeSuggestions || [],
+              confidence: ing.confidence || 70
+            }))
+
+            // Calculate overall status based on transformed ingredients
+            const hasProhibited = transformedIngredients.some(ing => ing.status === 'PROHIBITED')
+            const hasMashbooh = transformedIngredients.some(ing => ing.status === 'REQUIRES_REVIEW')
+            
+            let overallStatus: 'APPROVED' | 'PROHIBITED' | 'REQUIRES_REVIEW'
+            if (hasProhibited) {
+              overallStatus = 'PROHIBITED'
+            } else if (hasMashbooh) {
+              overallStatus = 'REQUIRES_REVIEW'
+            } else {
+              overallStatus = 'APPROVED'
+            }
+            
             const transformedResult: AnalysisResult = {
               id: crypto.randomUUID(),
               product: productResult.productName || file.name,
-              overall: analysis.overallStatus === 'HALAL' ? 'APPROVED' : 
-                      analysis.overallStatus === 'HARAM' ? 'PROHIBITED' : 
-                      analysis.overallStatus === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 'REQUIRES_REVIEW',
-              ingredients: (analysis.ingredients || []).map((ing: any) => ({
-                name: ing.name,
-                status: ing.status === 'HALAL' ? 'APPROVED' : 
-                       ing.status === 'HARAM' ? 'PROHIBITED' : 'REQUIRES_REVIEW',
-                reason: ing.reasoning || 'Enhanced analysis completed',
-                risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
-                category: ing.category || 'General',
-                islamicReferences: ing.islamicReferences || [],
-                alternativeSuggestions: ing.alternativeSuggestions || [],
-                confidence: ing.confidence || 70
-              })),
+              overall: overallStatus,
+              ingredients: transformedIngredients,
               warnings: analysis.recommendations?.filter((r: string) => r.includes('prohibited') || r.includes('should not')) || [],
               recommendations: analysis.recommendations || [],
               confidence: analysis.confidenceScore || 85,
@@ -377,7 +449,15 @@ export default function AnalyzePage() {
               cost_savings: Math.floor(Math.random() * 100) + 50,
               time_savings: Math.floor(Math.random() * 30) + 10,
               islamic_guidance: '',
-              analysis: `Processed ${result.originalFilename} - ${analysis.overallStatus} classification`
+              analysis: `Processed ${productResult.productName || file.name} - ${overallStatus} classification`,
+              islamicCompliance: {
+                totalIngredients: transformedIngredients.length,
+                halalCount: transformedIngredients.filter(ing => ing.status === 'APPROVED').length,
+                haramCount: transformedIngredients.filter(ing => ing.status === 'PROHIBITED').length,
+                questionableCount: transformedIngredients.filter(ing => ing.status === 'REQUIRES_REVIEW').length,
+                requiresVerification: transformedIngredients.filter(ing => ing.status === 'REQUIRES_REVIEW').length,
+                enhancedIngredients: transformedIngredients.length
+              }
             }
             
             transformedResults.push(transformedResult)
@@ -397,7 +477,9 @@ export default function AnalyzePage() {
               ingredients: (analysis.ingredients || []).map((ing: any) => ({
                 name: ing.name,
                 status: ing.status === 'HALAL' ? 'APPROVED' : 
-                       ing.status === 'HARAM' ? 'PROHIBITED' : 'REQUIRES_REVIEW',
+                       ing.status === 'HARAM' || ing.status === 'PROHIBITED' ? 'PROHIBITED' : 
+                       ing.status === 'MASHBOOH' ? 'REQUIRES_REVIEW' : 
+                       ing.status,
                 reason: ing.reasoning || ing.reason || 'Analysis completed',
                 risk: ing.confidence > 80 ? 'LOW' : ing.confidence > 50 ? 'MEDIUM' : 'HIGH',
                 category: ing.category || 'General',
@@ -2191,15 +2273,15 @@ export default function AnalyzePage() {
                                 
                                 
                                 {ingredient.alternativeSuggestions && ingredient.alternativeSuggestions.length > 0 && (
-                                  <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
                                     <div className="text-sm">
                                       <div className="flex items-center space-x-2 mb-1">
-                                        <svg className="w-4 h-4 text-emerald-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-purple-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                         </svg>
-                                        <span className="font-bold text-emerald-800">Halal Alternatives:</span>
+                                        <span className="font-bold text-purple-800">Halal Alternatives:</span>
                                       </div>
-                                      <div className="mt-1 text-emerald-700 font-medium">
+                                      <div className="mt-1 text-purple-700 font-medium">
                                         {ingredient.alternativeSuggestions.join(', ')}
                                       </div>
                                     </div>
@@ -3118,10 +3200,10 @@ export default function AnalyzePage() {
                                         {/* Alternative Suggestions */}
                                         {ing.alternativeSuggestions && ing.alternativeSuggestions.length > 0 && (
                                           <div>
-                                            <h6 className="font-semibold text-slate-700 mb-2">Halal Alternatives:</h6>
+                                            <h6 className="font-semibold text-purple-700 mb-2">Halal Alternatives:</h6>
                                             <div className="flex flex-wrap gap-2">
                                               {ing.alternativeSuggestions.map((alt, altIdx) => (
-                                                <span key={altIdx} className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                                                <span key={altIdx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
                                                   {alt}
                                                 </span>
                                               ))}
