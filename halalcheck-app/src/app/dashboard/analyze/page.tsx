@@ -424,8 +424,8 @@ export default function AnalyzePage() {
             }))
 
             // Calculate overall status based on transformed ingredients
-            const hasProhibited = transformedIngredients.some(ing => ing.status === 'PROHIBITED')
-            const hasMashbooh = transformedIngredients.some(ing => ing.status === 'REQUIRES_REVIEW')
+            const hasProhibited = transformedIngredients.some((ing: any) => ing.status === 'PROHIBITED')
+            const hasMashbooh = transformedIngredients.some((ing: any) => ing.status === 'REQUIRES_REVIEW')
             
             let overallStatus: 'APPROVED' | 'PROHIBITED' | 'REQUIRES_REVIEW'
             if (hasProhibited) {
@@ -452,10 +452,10 @@ export default function AnalyzePage() {
               analysis: `Processed ${productResult.productName || file.name} - ${overallStatus} classification`,
               islamicCompliance: {
                 totalIngredients: transformedIngredients.length,
-                halalCount: transformedIngredients.filter(ing => ing.status === 'APPROVED').length,
-                haramCount: transformedIngredients.filter(ing => ing.status === 'PROHIBITED').length,
-                questionableCount: transformedIngredients.filter(ing => ing.status === 'REQUIRES_REVIEW').length,
-                requiresVerification: transformedIngredients.filter(ing => ing.status === 'REQUIRES_REVIEW').length,
+                halalCount: transformedIngredients.filter((ing: any) => ing.status === 'APPROVED').length,
+                haramCount: transformedIngredients.filter((ing: any) => ing.status === 'PROHIBITED').length,
+                questionableCount: transformedIngredients.filter((ing: any) => ing.status === 'REQUIRES_REVIEW').length,
+                requiresVerification: transformedIngredients.filter((ing: any) => ing.status === 'REQUIRES_REVIEW').length,
                 enhancedIngredients: transformedIngredients.length
               }
             }
@@ -653,7 +653,7 @@ export default function AnalyzePage() {
       
       // Show success message
       setContextualError({
-        message: `✅ Document uploaded successfully! ${ingredientName} is now verified as Halal.`,
+        message: `Document uploaded successfully! ${ingredientName} is now verified as Halal.`,
         context: 'save-success'
       })
       
@@ -836,7 +836,7 @@ export default function AnalyzePage() {
       
       // Show success message
       setContextualError({
-        message: `✅ Document deleted successfully! ${ingredientName} status updated.`,
+        message: `Document deleted successfully! ${ingredientName} status updated.`,
         context: 'delete-success'
       })
       
@@ -973,7 +973,7 @@ export default function AnalyzePage() {
       
       // Show enhanced success message with status
       const statusText = intelligentStatus === 'approved' 
-        ? '✅ Approved and saved' 
+        ? 'Approved and saved' 
         : '🔍 Saved for review (missing documentation)'
         
       setContextualError({
@@ -1963,30 +1963,70 @@ export default function AnalyzePage() {
                   </div>
                 )}
 
-                {/* Enhanced Action Buttons */}
+                {/* Epic Futuristic Action Button */}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={analyzeIngredients}
                     disabled={analyzing || !state.productName.trim() || !state.ingredients.trim()}
-                    className="group relative flex-1 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 transition-all duration-300 font-semibold shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 disabled:transform-none disabled:hover:shadow-xl"
+                    className="group relative flex-1 px-8 py-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 disabled:from-slate-400 disabled:to-slate-500 transition-all duration-500 font-bold shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-1 disabled:transform-none disabled:hover:shadow-2xl overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    {/* Animated Background Glow */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-indigo-400/20 to-purple-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
+                    
+                    {/* Scanning Lines Effect */}
+                    <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <div className="absolute bottom-0 right-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/40 to-transparent transform translate-x-full group-hover:-translate-x-full transition-transform duration-1000 delay-200"></div>
+                    </div>
+
+                    {/* Border Glow */}
+                    <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-blue-500/50 via-indigo-500/50 to-purple-500/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
                     {analyzing ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span className="relative z-10">Analyzing with Enhanced AI...</span>
-                      </>
-                    ) : (
-                      <div className="flex items-center space-x-3 relative z-10">
-                        <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
+                      <div className="flex items-center justify-center space-x-4 relative z-10">
+                        {/* Epic AI Processing Animation */}
+                        <div className="relative">
+                          <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <div className="absolute inset-0 w-8 h-8 border-4 border-transparent border-r-white/60 rounded-full animate-spin animate-reverse" style={{animationDuration: '0.8s'}}></div>
                         </div>
-                        <span>Comprehensive Analysis</span>
+                        
+                        {/* Neural Network Icon */}
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-6 h-6 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          </svg>
+                          <div className="flex flex-col">
+                            <span className="text-base font-bold tracking-wide">AI PROCESSING</span>
+                            <div className="flex space-x-1">
+                              <div className="w-1 h-1 bg-white rounded-full animate-bounce"></div>
+                              <div className="w-1 h-1 bg-white rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                              <div className="w-1 h-1 bg-white rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center space-x-4 relative z-10">
+                        {/* Futuristic Analysis Icon */}
+                        <div className="relative">
+                          <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-all duration-300">
+                            <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          {/* Pulsing Dots */}
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full"></div>
+                        </div>
+                        
+                        <div className="flex flex-col items-start">
+                          <span className="text-lg font-bold tracking-wide">ANALYZE INGREDIENTS</span>
+                        </div>
+                        
+                        {/* Arrow Effect */}
+                        <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
                       </div>
                     )}
                   </button>
@@ -2052,7 +2092,23 @@ export default function AnalyzePage() {
                                   ? 'bg-green-100 text-green-800 border border-green-300' 
                                   : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                               }`}>
-                                {pipelineStatus === 'approved' ? '✅ Ready for Approval' : '🔍 Needs Documentation'}
+                                {pipelineStatus === 'approved' ? (
+                                  <div className="flex items-center space-x-1">
+                                    <div className="w-3 h-3 bg-green-600 rounded-full flex items-center justify-center">
+                                      <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                    <span>Ready for Approval</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    <svg className="w-3 h-3 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <span>Needs Documentation</span>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -2217,7 +2273,14 @@ export default function AnalyzePage() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm font-bold rounded-full shadow-lg">
-                                    ✓ VERIFIED
+                                    <div className="flex items-center space-x-1">
+                                      <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      </div>
+                                      <span>VERIFIED</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -2337,15 +2400,15 @@ export default function AnalyzePage() {
                                 
                                 
                                 {ingredient.alternativeSuggestions && ingredient.alternativeSuggestions.length > 0 && (
-                                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                                     <div className="text-sm">
                                       <div className="flex items-center space-x-2 mb-1">
-                                        <svg className="w-4 h-4 text-purple-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                         </svg>
-                                        <span className="font-bold text-purple-800">Halal Alternatives:</span>
+                                        <span className="font-bold text-blue-800">Halal Alternatives:</span>
                                       </div>
-                                      <div className="mt-1 text-purple-700 font-medium">
+                                      <div className="mt-1 text-blue-700 font-medium">
                                         {ingredient.alternativeSuggestions.join(', ')}
                                       </div>
                                     </div>
@@ -2415,7 +2478,14 @@ export default function AnalyzePage() {
                                       </span>
                                       {ingredient.verificationDocuments && ingredient.verificationDocuments.length > 0 && (
                                         <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                          ✓ Verified & Documented
+                                          <div className="flex items-center space-x-1">
+                                            <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                              <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                              </svg>
+                                            </div>
+                                            <span>Verified & Documented</span>
+                                          </div>
                                         </span>
                                       )}
                                     </div>
@@ -2431,10 +2501,24 @@ export default function AnalyzePage() {
                                       <div className="space-y-3 mb-4">
                                         <div className="flex items-center justify-between">
                                           <div className="text-sm text-green-700 font-bold">
-                                            ✅ {ingredient.verificationDocuments.length} Verification Document(s) Uploaded
+                                            <div className="flex items-center space-x-2">
+                                              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                              </div>
+                                              <span>{ingredient.verificationDocuments.length} Verification Document(s) Uploaded</span>
+                                            </div>
                                           </div>
                                           <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                            Documented ✓
+                                            <div className="flex items-center space-x-1">
+                                              <span>Documented</span>
+                                              <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                                <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
                                         {ingredient.verificationDocuments.map(doc => {
@@ -2517,7 +2601,14 @@ export default function AnalyzePage() {
                                                   
                                                   <div className="text-right">
                                                     <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-1 rounded-full">
-                                                      ✓ VERIFIED
+                                                      <div className="flex items-center space-x-1">
+                                      <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      </div>
+                                      <span>VERIFIED</span>
+                                    </div>
                                                     </div>
                                                     <div className="text-xs text-emerald-600 mt-1">
                                                       {new Date(doc.uploadDate).toLocaleDateString('en-US', { 
@@ -2753,14 +2844,14 @@ export default function AnalyzePage() {
                             {result.recommendations.length > 0 && (
                               <div>
                                 <div className="flex items-center space-x-2 mb-3">
-                                  <svg className="w-5 h-5 text-emerald-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                   </svg>
-                                  <h5 className="font-semibold text-emerald-800">Recommendations</h5>
+                                  <h5 className="font-semibold text-blue-800">Recommendations</h5>
                                 </div>
                                 <ul className="space-y-2">
                                   {result.recommendations.map((rec, idx) => (
-                                    <li key={idx} className="text-sm text-emerald-700 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                                    <li key={idx} className="text-sm text-blue-700 p-3 bg-blue-50 rounded-lg border border-blue-200">
                                       {rec}
                                     </li>
                                   ))}
@@ -2910,15 +3001,44 @@ export default function AnalyzePage() {
                     <input {...getBulkInputProps()} disabled={bulkAnalyzing} />
                     
                     {bulkAnalyzing ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-center">
-                          <svg className="animate-spin w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
+                      <div className="relative space-y-6 p-8">
+                        {/* Epic AI Processing Animation for Bulk Analysis */}
+                        <div className="flex items-center justify-center space-x-6">
+                          {/* Advanced Double Spinner */}
+                          <div className="relative">
+                            <div className="w-12 h-12 border-4 border-purple-300/30 border-t-purple-600 rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-r-indigo-600/60 rounded-full animate-spin animate-reverse" style={{animationDuration: '0.8s'}}></div>
+                            <div className="absolute inset-2 w-8 h-8 border-2 border-blue-400/40 border-b-blue-600 rounded-full animate-spin" style={{animationDuration: '1.5s'}}></div>
+                          </div>
+                          
+                          {/* Neural Network Processing Icon */}
+                          <div className="flex items-center space-x-3">
+                            <svg className="w-8 h-8 text-purple-600 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            <div className="flex flex-col items-start">
+                              <span className="text-xl font-bold text-purple-800 tracking-wide">BULK AI PROCESSING</span>
+                              <div className="flex space-x-1 mt-1">
+                                <div className="w-1.5 h-1.5 bg-purple-600 rounded-full animate-bounce"></div>
+                                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-purple-800 font-medium">Processing Files...</p>
-                        <p className="text-sm text-purple-600">Using AI to extract and analyze ingredients</p>
+                        
+                        {/* Status Messages with Premium Styling */}
+                        <div className="text-center space-y-2">
+                          <p className="text-lg font-bold text-purple-800">Multi-File Analysis in Progress</p>
+                          <p className="text-sm text-purple-600 font-medium">AI extracting ingredients and Islamic jurisprudence analysis</p>
+                        </div>
+                        
+                        {/* Futuristic Progress Indicator */}
+                        <div className="flex justify-center">
+                          <div className="w-32 h-1 bg-purple-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -2952,11 +3072,46 @@ export default function AnalyzePage() {
                               {/* Supported File Types */}
                               <div className="flex flex-wrap justify-center gap-2 mb-3">
                                 {[
-                                  { icon: '🖼️', label: 'Images' },
-                                  { icon: '📄', label: 'PDFs' },
-                                  { icon: '📊', label: 'Excel' },
-                                  { icon: '📝', label: 'Word' },
-                                  { icon: '📋', label: 'CSV' }
+                                  { 
+                                    icon: (
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    ), 
+                                    label: 'Images' 
+                                  },
+                                  { 
+                                    icon: (
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                      </svg>
+                                    ), 
+                                    label: 'PDFs' 
+                                  },
+                                  { 
+                                    icon: (
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                      </svg>
+                                    ), 
+                                    label: 'Excel' 
+                                  },
+                                  { 
+                                    icon: (
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                    ), 
+                                    label: 'Word' 
+                                  },
+                                  { 
+                                    icon: (
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18m-9-4v8m-7 0V8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2z" />
+                                      </svg>
+                                    ), 
+                                    label: 'CSV' 
+                                  }
                                 ].map((type, index) => (
                                   <span key={index} className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-700">
                                     <span className="mr-1">{type.icon}</span>
@@ -3055,7 +3210,23 @@ export default function AnalyzePage() {
                                   ? 'bg-green-100 text-green-800 border border-green-300' 
                                   : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                               }`}>
-                                {pipelineStatus === 'approved' ? '✅ Ready for Approval' : '🔍 Needs Documentation'}
+                                {pipelineStatus === 'approved' ? (
+                                  <div className="flex items-center space-x-1">
+                                    <div className="w-3 h-3 bg-green-600 rounded-full flex items-center justify-center">
+                                      <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                    <span>Ready for Approval</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    <svg className="w-3 h-3 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <span>Needs Documentation</span>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -3218,7 +3389,14 @@ export default function AnalyzePage() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white text-sm font-bold rounded-full shadow-lg">
-                                    ✓ VERIFIED
+                                    <div className="flex items-center space-x-1">
+                                      <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      </div>
+                                      <span>VERIFIED</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -3374,7 +3552,14 @@ export default function AnalyzePage() {
                                                   </span>
                                                   {hasDocuments && (
                                                     <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                                      ✓ Verified & Documented
+                                                      <div className="flex items-center space-x-1">
+                                            <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                              <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                              </svg>
+                                            </div>
+                                            <span>Verified & Documented</span>
+                                          </div>
                                                     </span>
                                                   )}
                                                 </div>
@@ -3390,10 +3575,24 @@ export default function AnalyzePage() {
                                                   <div className="space-y-3 mb-4">
                                                     <div className="flex items-center justify-between">
                                                       <div className="text-sm text-green-700 font-bold">
-                                                        ✅ {ing.verificationDocuments.length} Verification Document(s) Uploaded
+                                                        <div className="flex items-center space-x-2">
+                                                          <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                          </div>
+                                                          <span>{ing.verificationDocuments.length} Verification Document(s) Uploaded</span>
+                                                        </div>
                                                       </div>
                                                       <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                                        Documented ✓
+                                                        <div className="flex items-center space-x-1">
+                                              <span>Documented</span>
+                                              <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                                <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                              </div>
+                                            </div>
                                                       </div>
                                                     </div>
                                                     
@@ -3425,7 +3624,14 @@ export default function AnalyzePage() {
                                                               
                                                               <div className="text-right">
                                                                 <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-1 rounded-full">
-                                                                  ✓ VERIFIED
+                                                                  <div className="flex items-center space-x-1">
+                                      <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      </div>
+                                      <span>VERIFIED</span>
+                                    </div>
                                                                 </div>
                                                                 <div className="text-xs text-emerald-600 mt-1">
                                                                   {new Date(doc.uploadDate).toLocaleDateString('en-US', { 
@@ -3576,14 +3782,14 @@ export default function AnalyzePage() {
                               {result.recommendations.length > 0 && (
                                 <div>
                                   <div className="flex items-center space-x-2 mb-3">
-                                    <svg className="w-5 h-5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <svg className="w-5 h-5 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                     </svg>
-                                    <h5 className="font-semibold text-emerald-800">Recommendations</h5>
+                                    <h5 className="font-semibold text-blue-800">Recommendations</h5>
                                   </div>
                                   <ul className="space-y-2">
                                     {result.recommendations.map((rec, idx) => (
-                                      <li key={idx} className="text-sm text-emerald-700 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                                      <li key={idx} className="text-sm text-blue-700 p-3 bg-blue-50 rounded-lg border border-blue-200">
                                         {rec}
                                       </li>
                                     ))}
