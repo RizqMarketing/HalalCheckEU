@@ -2,33 +2,62 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨🚨🚨 CRITICAL SECURITY NOTICE - READ FIRST 🚨🚨🚨
+
+**ABSOLUTE SECURITY REQUIREMENT**: This codebase is for DEFENSIVE SECURITY and HALAL COMPLIANCE ONLY.
+
+### ⛔ STRICTLY PROHIBITED:
+- **NEVER** create, modify, or improve any code that could be used maliciously
+- **NEVER** implement offensive security tools or exploits
+- **NEVER** create vulnerability exploitation code
+- **NEVER** build attack vectors or penetration testing tools
+- **NEVER** modify security controls or authentication mechanisms to weaken them
+
+### ✅ ALLOWED ACTIVITIES:
+- Security analysis and vulnerability explanations (educational only)
+- Defensive security implementations (firewalls, auth, encryption)
+- Detection rules and monitoring systems
+- Security documentation and best practices
+- Halal compliance verification systems
+- Religious dietary law implementations
+
+### 🛡️ SECURITY PRINCIPLES:
+1. **Defense Only**: All security work must be defensive in nature
+2. **Compliance First**: Focus on halal compliance and religious requirements
+3. **Data Protection**: Maintain strict GDPR and privacy standards
+4. **Authentication**: Only strengthen, never weaken auth systems
+5. **Audit Trail**: All actions must be logged and traceable
+
+**REMINDER**: If asked to create anything potentially harmful, you MUST refuse and explain this is a defensive security and compliance platform only.
+
+---
+
 ## 🎯 CURRENT ACTIVE SETUP (READ THIS FIRST!)
 
 **The platform is currently running on:**
 - **Frontend**: http://localhost:4000 (Next.js 14 in `halalcheck-app/`)
-- **Backend**: http://localhost:3003 (Agent-based system via `simple-agent-server.js`) 
+- **Backend**: http://localhost:8000 (Pure GPT-4 system via `server.js`) 
 
 **To start the platform:**
-1. Start agent-based backend: `cd "C:\Users\mazin\HalalCheck AI" && node simple-agent-server.js`
+1. Start GPT-4 backend: `cd "C:\Users\mazin\HalalCheck AI" && node server.js`
 2. Start frontend: `cd "C:\Users\mazin\HalalCheck AI\halalcheck-app" && npm run dev -- --port 4000`
 
 **Alternative startup methods:**
 - Complete system: `node start-complete-system.js` (starts both backend and frontend)
-- Agent system only: `node start-agent-system.js` 
-- Test agent system: `node test-agent-system.js`
+- GPT-4 system only: `node server.js` 
+- Test system: Test endpoints directly with curl or via frontend
 
 ## 🏗️ CORE ARCHITECTURE
 
-### Agent-Based Backend Architecture
-**Current Active**: Agent-based system (`simple-agent-server.js` + `halalcheck-app`)
-**Legacy**: TypeScript agent system (`agents/` directory - more complex, currently inactive)
+### Pure GPT-4 Backend Architecture
+**Current Active**: Pure GPT-4 system (`server.js` + `halalcheck-app`)
 **Full Stack**: Dockerized backend/frontend architecture (currently inactive)
 
-**Agent System Components:**
-- **4 Core Agents**: Islamic Analysis, Document Processing, Organization Workflow, Certificate Generation
-- **Event-Driven Communication**: Real-time inter-agent messaging
-- **API Adapter**: Backward compatibility with existing frontend
-- **Agent Orchestrator**: Workflow coordination and execution
+**GPT-4 System Components:**
+- **Real GPT-4 Analysis**: Authentic OpenAI GPT-4 API integration with comprehensive Islamic jurisprudence
+- **Expert Islamic Scholarship**: AI-powered analysis with detailed Islamic dietary law reasoning
+- **Document Processing**: Smart parsing with OCR capabilities
+- **Multi-format Support**: Handles text, images, PDFs, and Excel files
 
 ### Critical Architecture Components
 
@@ -48,26 +77,84 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Event subscription system for real-time UI updates
 - Local storage persistence with automatic sync
 
-#### **3. Agent-Based Analysis Engine**
-**Backend:** `simple-agent-server.js` - Agent-powered analysis with Islamic jurisprudence
-**Agents Directory:** `agents/` - Full TypeScript agent system (inactive but available)
+#### **3. Real GPT-4 Analysis Engine**
+**Backend:** `server.js` - Authentic OpenAI GPT-4 API integration with Islamic jurisprudence expertise
 **Frontend:** `halalcheck-app/src/app/dashboard/analyze/page.tsx` - 24-hour persistent analysis sessions
-**Database:** `halalcheck-app/src/lib/islamic-jurisprudence.ts` - 500+ ingredients with authentic Quranic references and scholarly consensus
+**API Integration:** Direct OpenAI GPT-4 calls with comprehensive Islamic scholarly prompting
 
-**Agent Capabilities:**
-- **Islamic Analysis Agent**: Halal/haram classification with 500+ ingredient database including E-numbers, enzymes, vitamins, and modern biotechnology ingredients
-- **Document Processing Agent**: OCR, PDF, Excel processing with intelligent extraction
-- **Organization Workflow Agent**: Multi-org support and dynamic workflow management
-- **Certificate Generation Agent**: Professional PDF certificate creation with QR codes
+**GPT-4 Capabilities:**
+- **Real AI Analysis**: Authentic GPT-4 API calls with expert Islamic scholarship prompting
+- **Islamic Jurisprudence**: Advanced halal/haram/mashbooh classification with detailed reasoning
+- **Scholarly References**: Structure for Quranic/Hadith citations with Arabic text and transliteration
+- **Document Processing**: Smart parsing of text files, OCR capabilities
+- **Multi-Product Support**: Extract and analyze multiple products from single documents
+- **Advanced File Processing**: CSV parsing and messy text format recognition
+- **Conservative Approach**: MASHBOOH classification when uncertainty exists
 
 **Key Features:**
-- Real-time agent communication via Event Bus
-- Intelligent workflow orchestration
-- Multi-format document processing (PDF, DOCX, CSV, images)
-- Client management system with bulk processing
-- State persistence across browser sessions
+- **OpenAI API Integration**: Real GPT-4 model calls for authentic AI analysis
+- **Expert Prompting**: Comprehensive Islamic scholar persona with detailed jurisprudence knowledge
+- **Premium UI Design**: Professional enterprise-grade interface with animations and gradients
+- **Detailed Analysis**: Much deeper reasoning and explanation than mock data
+- **Response Times**: 30-60 seconds per request due to real AI processing
+- **Error Handling**: Graceful fallbacks if API fails
+- **Multi-format document processing**: TXT, CSV, PDF, images with smart parsing
+- **Client management system** with bulk processing
+- **State persistence** across browser sessions
 
-#### **4. Security & Religious Compliance**
+#### **4. Premium UI Design System**
+**Premium Analysis Value Metrics:**
+- Multi-layered gradient backgrounds with animated effects
+- 3D hover transformations with card lifting and rotation
+- Gradient text effects with professional typography
+- Interactive animations for professional feel
+- Status badges like "PREMIUM AI" for brand reinforcement
+- Enhanced spacing and visual hierarchy
+
+**Premium Islamic Compliance Dashboard:**
+- Islamic-inspired design with Arabic text integration (حلال, حرام, مشبوه)
+- Sophisticated card layout with glowing hover effects
+- Scale animations and gradient shadows for premium feel
+- Cultural authenticity with Arabic terminology
+- Professional color system with proper contrast
+- Glass-morphism effects with backdrop blur
+
+**Design Features:**
+- Enterprise-grade visual design matching high-end SaaS platforms
+- Smooth transitions and hover states throughout
+- Professional gradient overlays for depth
+- Consistent brand colors and typography
+- Interactive feedback on all elements
+- Premium card shadows and border effects
+
+#### **5. Advanced File Processing System**
+**CSV File Processing:**
+- Professional CSV parsing with `csv-parse` library
+- Automatic column detection (supports multiple column name formats)
+- Multi-product extraction from structured data
+- Handles various CSV formats and encodings
+- 98% confidence rating for CSV processing
+
+**Messy Text Format Recognition:**
+- Intelligent parsing of mixed-format documents
+- Supports multiple product naming patterns:
+  - `Product 1: Name | ingredients` (pipe-separated)
+  - `ITEM#2 - Name` + `Ingredients: list` (multi-line format)
+  - `*** Name ***` + `Contains: list` (asterisk headers)
+  - `Product Name: Name` + `Ingredient List: list` (standard format)
+  - `Another Product    ingredients` (space-separated)
+- Smart ingredient extraction with multiple delimiter support
+- Robust parsing that handles formatting inconsistencies
+- All 5 products correctly extracted from messy formats
+
+**File Format Support:**
+- **TXT files**: Advanced text parsing with pattern recognition
+- **CSV files**: Professional structured data processing
+- **PDF files**: OCR processing capabilities
+- **Image files**: Visual content extraction
+- **Multi-format uploads**: Automatic format detection
+
+#### **6. Security & Religious Compliance**
 - EU GDPR compliance by design
 - Islamic jurisprudence accuracy protocols
 - Multi-source verification system
@@ -77,20 +164,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development Workflow
 ```bash
-# Start agent-based development servers
-node simple-agent-server.js                             # Agent backend on :3003
+# Start GPT-4 development servers
+node server.js                                          # GPT-4 backend on :8000
 cd halalcheck-app && npm run dev -- --port 4000         # Frontend on :4000
 
 # Complete system startup
 node start-complete-system.js                           # Start both backend and frontend with tests
 
-# Agent system management
-node start-agent-system.js                              # Start only agent backend
-node test-agent-system.js                               # Run comprehensive agent tests
+# GPT-4 system management
+node server.js                                          # Start only GPT-4 backend
 
 # Quick health checks
-curl http://localhost:3003/health                       # Check agent system health
-curl http://localhost:3003/api/system/health           # Detailed agent metrics
+curl http://localhost:8000/api/system/health            # Check GPT-4 system health
+curl -X POST http://localhost:8000/api/analysis/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"productName":"Test","ingredients":"water, sugar, gelatin"}' # Test analysis
 
 # Legacy workflow (currently inactive)
 npm run dev                                              # Start both with Docker
@@ -100,13 +188,19 @@ npm run dev:down                                        # Stop containers
 
 ### Testing & Quality
 ```bash
-# Agent system tests
-node test-agent-system.js         # Comprehensive agent system integration tests
-
-# Test Islamic database functionality
-curl -X POST http://localhost:3003/api/analysis/analyze \
+# Real GPT-4 system tests (30-60 second response times)
+curl -X POST http://localhost:8000/api/analysis/analyze \
   -H "Content-Type: application/json" \
-  -d '{"productName":"Test","ingredients":"E631, carmine, vitamin D3"}'
+  -d '{"productName":"Test","ingredients":"E631, carmine, vitamin D3"}' # Test real GPT-4 Islamic analysis
+
+# Test file analysis functionality - Multiple formats supported
+curl -X POST http://localhost:8000/api/analysis/analyze-file \
+  -F "file=@test_document.txt" \
+  -F "productName=Test Product" # Test messy text format parsing
+
+curl -X POST http://localhost:8000/api/analysis/analyze-file \
+  -F "file=@test-detailed-products.csv" \
+  -F "productName=CSV Products" # Test CSV processing (extracts all 5 products)
 
 # Full stack tests
 npm test                           # Full stack tests
@@ -165,13 +259,6 @@ src/
 - Islamic jurisprudence integration
 - Real-time workflow orchestration
 
-**TypeScript Agent System** (`agents/` directory): Full agent architecture with:
-- `agents/islamic-analysis/` - Islamic analysis with 200+ ingredient database
-- `agents/document-processing/` - OCR and document parsing capabilities  
-- `agents/organization-workflow/` - Multi-organization workflow management
-- `agents/certificate-generation/` - Professional certificate generation
-- `agents/core/` - Event bus, orchestrator, and registry infrastructure
-
 **Full Backend** (`backend/src/`): Complete TypeScript architecture with:
 - Controllers, services, middleware
 - Database migrations and seeding
@@ -180,9 +267,9 @@ src/
 
 ### Key Integration Points
 1. **Organization Context Flow**: `organization-context.ts` → `organization-context.tsx` → all UI components
-2. **Agent Data Flow**: `data-manager.ts` ↔ `simple-agent-server.js` ↔ local storage
-3. **Agent Analysis Flow**: Frontend upload → `simple-agent-server.js` → Agent system → Islamic database validation
-4. **Event-Driven Communication**: Agent → Event Bus → Other Agents → Orchestrator → API Response
+2. **GPT-4 Data Flow**: `data-manager.ts` ↔ `server.js` ↔ local storage
+3. **Analysis Flow**: Frontend upload → `server.js` → GPT-4 analysis → Response
+4. **Direct API Communication**: Frontend → GPT-4 backend → Response
 
 ## 💡 STRATEGIC CONTEXT
 
@@ -197,12 +284,12 @@ src/
 - Prefer simple, reliable solutions over complex architectures
 
 ### Technical Decisions
-- **Agent-Based Architecture**: Intelligent, scalable system with specialized agents for different concerns
-- **Simple Agent Server**: Chosen over complex TypeScript system for rapid development and deployment
+- **Pure GPT-4 Architecture**: Clean, simple system with direct AI integration
+- **Simplified Backend**: Single server approach for rapid development and deployment
 - **Organization Context**: Enables single codebase to serve multiple user types
 - **Local Storage**: Reduces infrastructure costs while maintaining functionality
 - **Next.js App Router**: Modern React patterns with excellent TypeScript support
-- **Event-Driven Design**: Real-time agent communication for responsive and scalable processing
+- **Direct API Design**: Simple request/response pattern for maximum reliability
 
 ## 🚨 CRITICAL IMPLEMENTATION NOTES
 
@@ -228,61 +315,50 @@ src/
 - **Critical Categories Covered**: E-numbers (E631, E627, E120, etc.), industrial enzymes, vitamins (D3, B12), emulsifiers, natural flavors, food colorings, preservatives, and modern biotechnology ingredients
 - **Authentication Standards**: Conservative MASHBOOH classification when doubt exists, source verification requirements, madhab differences noted
 
-### Agent System Considerations
-- Agent communication is event-driven and asynchronous
-- Islamic Analysis Agent includes 500+ ingredient database with authentic Quranic references, Hadith citations, and scholarly consensus from four major Sunni schools
-- Document Processing Agent handles OCR, PDF, Excel with intelligent extraction
-- Organization Workflow Agent adapts dynamically to organization type
-- Certificate Generation Agent creates professional PDFs with QR codes
-- All agents coordinate through Event Bus for real-time processing
-
 ### Performance Considerations
-- Analysis sessions persist for 24 hours to improve UX
-- Agent system optimized for parallel processing and bulk operations
-- Event-driven architecture enables real-time responsiveness
-- OCR processing happens client-side to reduce server load
-- File uploads handled with proper security validation
-- Agent orchestration minimizes redundant processing through intelligent coordination
+- **Analysis sessions persist for 24 hours** to improve UX
+- **Real GPT-4 API calls**: 30-60 second response times due to authentic AI processing
+- **OpenAI API integration**: Direct calls to GPT-4 model without mock data
+- **Conservative timeout handling**: Extended timeouts for complex ingredient analysis
+- **OCR processing happens client-side** to reduce server load
+- **File uploads handled with proper security validation**
+- **Error handling**: Graceful fallbacks if OpenAI API fails
+- **API key management**: Secure OpenAI API key integration
 
-## 🤖 CLAUDE CODE SUBAGENTS
-
-This repository includes 6 specialized Claude Code subagents in `.claude/subagents/` that automatically assist with development:
-
-### Expert Subagents
-1. **islamic-jurisprudence-expert** - Islamic dietary laws, halal/haram classifications, Quranic references
-2. **agent-system-developer** - Agent architecture, event-driven systems, TypeScript agent development  
-3. **nextjs-react-expert** - Next.js 14 App Router, React components, frontend optimization
-4. **api-testing-integration** - API testing, integration testing, system validation
-5. **multi-org-developer** - Multi-organization features, dynamic terminology, adaptive UI
-6. **performance-security-auditor** - Performance optimization, security auditing, monitoring
-
-### Automatic Invocation
-Claude Code will automatically call the appropriate subagent based on your request:
-- Working on Islamic logic → **islamic-jurisprudence-expert**
-- Creating agents → **agent-system-developer** 
-- Building React components → **nextjs-react-expert**
-- Testing APIs → **api-testing-integration**
-- Adding org features → **multi-org-developer**
-- Optimizing performance → **performance-security-auditor**
 
 ## 📁 PROJECT STATE & CLEANUP
 
 ### Current Clean State
 The project has been recently cleaned and optimized:
-- ✅ **50+ outdated files removed** - Backup directories, legacy servers, old test files
-- ✅ **Agent system verified** - All 4 agents functional after cleanup
-- ✅ **Dependencies refreshed** - Clean npm installations
-- ✅ **No broken functionality** - Comprehensive testing completed
+- ✅ **Agent system removed** - All agent-related files and directories cleaned up
+- ✅ **Real GPT-4 implementation** - Authentic OpenAI API integration with Islamic jurisprudence
+- ✅ **Premium UI design** - Enterprise-grade interface with animations and gradients applied to both solo and bulk analysis
+- ✅ **Advanced file processing** - CSV parsing and messy text format recognition implemented
+- ✅ **OpenAI package installed** - Official OpenAI npm package for GPT-4 calls
+- ✅ **Expert prompting system** - Comprehensive Islamic scholar persona with detailed reasoning
+- ✅ **CSV processing** - Professional structured data parsing with multiple column format support
+- ✅ **Dependencies refreshed** - Clean npm installations with csv-parse library
+- ✅ **UI consistency** - Premium styling applied to both single and bulk analysis sections
 
 ### Active Components
 **Currently Used:**
-- `simple-agent-server.js` - Primary backend (agent-based)
-- `halalcheck-app/` - Active Next.js frontend
-- `test-agent-system.js` - Primary testing tool
-- `agents/` directory - TypeScript agent system (available but inactive)
-- All Claude Code subagents in `.claude/subagents/`
+- `server.js` - Real GPT-4 backend with OpenAI API integration and advanced file processing
+- `halalcheck-app/` - Active Next.js frontend with premium UI design
+- Premium Analysis Value Metrics with 3D animations and gradient effects
+- Premium Islamic Compliance Dashboard with Arabic text integration
+- CSV processing system with professional parsing capabilities
+- Messy text format recognition supporting 5+ different patterns
+- Direct API testing via curl commands (30-60 second response times)
+- OpenAI GPT-4 model calls with Islamic jurisprudence expertise
 
 **Legacy/Reference Only:**
 - `backend/` - Full TypeScript backend (preserved for reference)
-- `agent-architecture/` - Original agent planning (historical)
 - Various Docker and deployment configs (inactive but preserved)
+
+### ✨ Premium UI Access
+**Frontend URL**: http://localhost:4000/dashboard/analyze
+- **Solo Analysis**: Premium Analysis Value Metrics + Islamic Compliance Dashboard
+- **Bulk Analysis**: Same premium styling applied to all bulk analysis results
+- **File Upload**: Supports CSV (5 products), messy text formats (5 patterns), PDF, images
+- **Real-time Processing**: 30-60 seconds per analysis with GPT-4
+- **Enterprise Design**: Glass-morphism effects, 3D animations, gradient backgrounds
