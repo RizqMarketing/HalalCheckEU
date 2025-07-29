@@ -62,7 +62,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Document Processing**: Smart parsing of text files, OCR capabilities
 - **Multi-Product Support**: Extract and analyze multiple products from single documents
 - **Advanced File Processing**: CSV parsing and messy text format recognition
-- **Conservative Approach**: MASHBOOH classification when uncertainty exists
+- **IslamQA.info Primary Authority**: IslamQA.info rulings override all other sources for Islamic knowledge
+- **Dairy Product Optimization**: All standard dairy products (butter, milk, cheese) default to HALAL classification
 
 **Key Features:**
 - **OpenAI API Integration**: Real GPT-4 model calls for authentic AI analysis
@@ -74,6 +75,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Multi-format document processing**: TXT, CSV, PDF, images with smart parsing
 - **Client management system** with bulk processing
 - **State persistence** across browser sessions
+- **Document Upload System**: Professional document verification with upload/delete functionality
 
 #### **4. Premium UI Design System**
 **Premium Analysis Value Metrics:**
@@ -127,11 +129,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Image files**: Visual content extraction
 - **Multi-format uploads**: Automatic format detection
 
-#### **6. Security & Religious Compliance**
+#### **6. Premium Document Upload & Verification System**
+**Core Implementation:** `halalcheck-app/src/app/dashboard/analyze/page.tsx`
+- **Enterprise-Grade Document Upload**: Premium styled upload interface with gradient backgrounds and 3D animations
+- **Professional Document Display**: Sophisticated cards with glass-morphism effects, gradient shadows, and hover transformations
+- **Status Management**: Upload document → ingredient turns GREEN (HALAL), delete document → reverts to ORANGE (REQUIRES_REVIEW)
+- **Delete Functionality**: Comprehensive document removal with smooth animations and state synchronization
+- **Feature Parity**: Identical premium styling and functionality across solo and bulk analysis workflows
+- **Professional Icons**: SVG-based icons replacing emoji checkmarks for enterprise appearance
+- **Error Handling**: Comprehensive validation with premium styled feedback systems
+- **State Persistence**: Document information persists across browser sessions with 24-hour cache
+
+**Premium UI Features:**
+- **Gradient Upload Cards**: Multi-layered gradient backgrounds with emerald/green color schemes
+- **3D Hover Effects**: Scale transformations, shadow enhancements, and interactive feedback
+- **Professional Success Badges**: Gradient SVG icons with floating animation effects
+- **Premium Upload Buttons**: Glass-morphism design with backdrop blur and gradient styling
+- **Interactive Animations**: Smooth transitions and hover states throughout the upload process
+
+**Key Functions:**
+- `handleDocumentUpload`: Processes file uploads with premium UI feedback and status updates
+- `deleteDocument`: Removes documents with smooth animations and state reversion
+- `getBulkDocumentIcon` & `getBulkDocumentTypeBadge`: Premium styling functions for document display
+- All functions work seamlessly across solo and bulk analysis with identical premium styling
+
+#### **7. Security & Religious Compliance**
 - EU GDPR compliance by design
 - Islamic jurisprudence accuracy protocols
 - Multi-source verification system
 - Expert validation requirements for sensitive ingredients
+- **IslamQA.info Primary Authority**: All Islamic rulings prioritize IslamQA.info over other sources
+- **Dairy Product Standards**: Butter, milk, cheese, cream automatically classified as HALAL (95% confidence)
 
 ## 🔧 COMMON DEVELOPMENT COMMANDS
 
@@ -317,6 +345,13 @@ The project has been recently cleaned and optimized:
 - ✅ **Overall analysis status** - Properly calculated from ingredient statuses (PROHIBITED overrides all)
 - ✅ **End-to-end data flow** - Consistent status handling from GPT-4 → Frontend → Dashboard
 - ✅ **Purple alternatives styling** - Halal alternatives now use clean purple design instead of green
+- ✅ **Document upload functionality** - Professional document verification system with upload/delete capabilities
+- ✅ **IslamQA.info primary authority** - All Islamic knowledge now prioritizes IslamQA.info rulings over other sources
+- ✅ **Dairy product optimization** - Butter, milk, cheese, cream now correctly default to HALAL classification (95% confidence)
+- ✅ **Premium document upload UI** - Enterprise-grade document upload interface with professional styling and animations
+- ✅ **Professional SVG icons** - Replaced emoji checkmarks with sophisticated SVG icons throughout the platform
+- ✅ **Bulk analysis feature parity** - Bulk analysis now has identical premium styling and functionality as solo analysis
+- ✅ **JSX syntax fixes** - Resolved compilation errors and improved code structure for better maintainability
 
 ### Active Components
 **Currently Used:**
@@ -328,6 +363,7 @@ The project has been recently cleaned and optimized:
 - Messy text format recognition supporting 5+ different patterns
 - Direct API testing via curl commands (30-60 second response times)
 - OpenAI GPT-4 model calls with Islamic jurisprudence expertise
+- Document upload/delete system for ingredient verification with professional UI
 
 **Legacy/Reference Only:**
 - `backend/` - Full TypeScript backend (preserved for reference)
@@ -335,8 +371,12 @@ The project has been recently cleaned and optimized:
 
 ### ✨ Premium UI Access
 **Frontend URL**: http://localhost:4000/dashboard/analyze
-- **Solo Analysis**: Premium Analysis Value Metrics + Islamic Compliance Dashboard
-- **Bulk Analysis**: Same premium styling applied to all bulk analysis results
-- **File Upload**: Supports CSV (5 products), messy text formats (5 patterns), PDF, images
-- **Real-time Processing**: 30-60 seconds per analysis with GPT-4
-- **Enterprise Design**: Glass-morphism effects, 3D animations, gradient backgrounds
+- **Solo Analysis**: Premium Analysis Value Metrics + Islamic Compliance Dashboard with enterprise-grade styling
+- **Bulk Analysis**: Complete feature parity with solo analysis - identical premium styling and functionality
+- **File Upload**: Supports CSV (5 products), messy text formats (5 patterns), PDF, images with professional drag-and-drop
+- **Document Verification**: Premium document upload system with gradient cards, SVG icons, and 3D animations
+- **Real-time Processing**: 30-60 seconds per analysis with GPT-4 and premium loading states
+- **Enterprise Design**: Glass-morphism effects, multi-layered gradients, scale transformations, and backdrop blur
+- **Professional Icons**: SVG-based success badges and document type indicators replacing emoji checkmarks
+- **Interactive Feedback**: Hover states, smooth transitions, and animated feedback throughout the interface
+- **Dairy Optimization**: Butter, milk, cheese now correctly show as green/halal by default with 95% confidence

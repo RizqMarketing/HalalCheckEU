@@ -292,8 +292,8 @@ export default function AnalyzePage() {
       }))
 
       // Calculate overall status based on transformed ingredients
-      const hasProhibited = transformedIngredients.some(ing => ing.status === 'PROHIBITED')
-      const hasMashbooh = transformedIngredients.some(ing => ing.status === 'REQUIRES_REVIEW')
+      const hasProhibited = transformedIngredients.some((ing: any) => ing.status === 'PROHIBITED')
+      const hasMashbooh = transformedIngredients.some((ing: any) => ing.status === 'REQUIRES_REVIEW')
       
       let overallStatus: 'APPROVED' | 'PROHIBITED' | 'REQUIRES_REVIEW'
       if (hasProhibited) {
@@ -607,14 +607,27 @@ export default function AnalyzePage() {
     return 'APPROVED' // All ingredients are halal or verified
   }
 
-  // Document upload handler for questionable ingredients
+  // Document upload handler for questionable ingredients (local storage only)
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>, analysisId: string, ingredientName: string) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     try {
-      console.log(`Uploading verification document for ${ingredientName} in analysis ${analysisId}`)
-      console.log('Current bulk results:', state.bulkResults.length)
+      console.log(`📄 Uploading verification document for ${ingredientName} in analysis ${analysisId}`)
+      console.log('📄 Current bulk results:', state.bulkResults.length)
+      
+      // Validate file
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        setError('File size must be less than 10MB')
+        return
+      }
+
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+      if (!allowedTypes.includes(file.type)) {
+        setError('Only PDF and image files are allowed')
+        return
+      }
       
       // Create document preview URL
       const documentPreviewUrl = URL.createObjectURL(file)
@@ -625,25 +638,18 @@ export default function AnalyzePage() {
         size: file.size
       })
       
-      // Create FormData for file upload
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('analysisId', analysisId)
-      formData.append('ingredientName', ingredientName)
-      formData.append('documentType', 'certificate') // Default type
-      
-      // Upload to backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/verification/upload-document`, {
-        method: 'POST',
-        body: formData,
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Document upload failed: ${response.statusText}`)
+      // Create document record (no backend upload needed)
+      const documentRecord = {
+        id: crypto.randomUUID(),
+        filename: file.name,
+        uploadDate: new Date().toISOString(),
+        type: 'certificate' as const,
+        previewUrl: documentPreviewUrl,
+        fileType: file.type,
+        fileSize: file.size
       }
       
-      const result = await response.json()
-      console.log('Document uploaded successfully:', result)
+      console.log('📄 Document record created locally:', documentRecord)
       
       // Show success message
       setContextualError({
@@ -667,15 +673,7 @@ export default function AnalyzePage() {
                     ...ingredient,
                     verificationDocuments: [
                       ...(ingredient.verificationDocuments || []),
-                      {
-                        id: result.documentId || crypto.randomUUID(),
-                        filename: file.name,
-                        uploadDate: new Date().toISOString(),
-                        type: 'certificate' as const,
-                        previewUrl: documentPreviewUrl,
-                        fileType: file.type,
-                        fileSize: file.size
-                      }
+                      documentRecord
                     ],
                     verificationStatus: 'verified' as const,
                     // Change to APPROVED (HALAL) when document is uploaded
@@ -704,15 +702,7 @@ export default function AnalyzePage() {
               ...bulkResult,
               ingredients: bulkResult.ingredients.map(ingredient => {
                 if (ingredient.name === ingredientName) {
-                  const newDoc = {
-                    id: result.documentId || crypto.randomUUID(),
-                    filename: file.name,
-                    uploadDate: new Date().toISOString(),
-                    type: 'certificate' as const,
-                    previewUrl: documentPreviewUrl,
-                    fileType: file.type,
-                    fileSize: file.size
-                  }
+                  const newDoc = documentRecord
                   console.log('📄 BULK STATE: Adding document to ingredient:', ingredientName, 'New doc:', newDoc)
                   const updatedIngredient = {
                     ...ingredient,
@@ -740,6 +730,12 @@ export default function AnalyzePage() {
         })
       }))
       
+      // Persist to localStorage for 24-hour cache
+      localStorage.setItem('halalcheck_analysis_state', JSON.stringify({
+        ...state,
+        lastSaved: Date.now()
+      }))
+      
       // Force component re-render
       setRefreshKey(prev => prev + 1)
       
@@ -757,6 +753,102 @@ export default function AnalyzePage() {
     
     // Reset file input
     event.target.value = ''
+  }
+
+  // Delete document function with full state synchronization
+  const deleteDocument = async (analysisId: string, ingredientName: string, documentId: string) => {
+    try {
+      console.log(`Deleting verification document ${documentId} for ${ingredientName} in analysis ${analysisId}`)
+      
+      // Update the analysis results by removing the document
+      setState(prevState => ({
+        ...prevState,
+        analysisResults: prevState.analysisResults.map(analysis => {
+          if (analysis.id === analysisId) {
+            const updatedAnalysis = {
+              ...analysis,
+              ingredients: analysis.ingredients.map(ingredient => {
+                if (ingredient.name === ingredientName) {
+                  const remainingDocs = (ingredient.verificationDocuments || []).filter(doc => doc.id !== documentId)
+                  return {
+                    ...ingredient,
+                    verificationDocuments: remainingDocs,
+                    // Revert to REQUIRES_REVIEW if no documents left for mashbooh ingredients
+                    status: remainingDocs.length === 0 && 
+                           (ingredient.status === 'APPROVED' || ingredient.reason?.toLowerCase().includes('mashbooh') || ingredient.reason?.toLowerCase().includes('questionable')) 
+                           ? 'REQUIRES_REVIEW' 
+                           : ingredient.status,
+                    verificationStatus: remainingDocs.length === 0 ? undefined : 'verified'
+                  }
+                }
+                return ingredient
+              })
+            }
+            
+            // Recalculate overall status
+            updatedAnalysis.overall = recalculateOverallStatus(updatedAnalysis)
+            
+            return updatedAnalysis
+          }
+          return analysis
+        })
+      }))
+      
+      // Also update bulk results if this is a bulk analysis (match solo analysis logic exactly)
+      setState(prevState => ({
+        ...prevState,
+        bulkResults: prevState.bulkResults.map(bulkResult => {
+          if (bulkResult.id === analysisId) {
+            const updatedBulkResult = {
+              ...bulkResult,
+              ingredients: bulkResult.ingredients.map(ingredient => {
+                if (ingredient.name === ingredientName) {
+                  const remainingDocs = (ingredient.verificationDocuments || []).filter(doc => doc.id !== documentId)
+                  console.log(`📄 BULK DELETE: Removing document ${documentId} from ${ingredientName}, remaining docs:`, remainingDocs.length)
+                  const updatedIngredient = {
+                    ...ingredient,
+                    verificationDocuments: remainingDocs,
+                    // Revert to REQUIRES_REVIEW if no documents left for mashbooh ingredients
+                    status: remainingDocs.length === 0 && 
+                           (ingredient.status === 'APPROVED' || ingredient.reason?.toLowerCase().includes('mashbooh') || ingredient.reason?.toLowerCase().includes('questionable')) 
+                           ? 'REQUIRES_REVIEW' 
+                           : ingredient.status,
+                    verificationStatus: remainingDocs.length === 0 ? undefined : 'verified'
+                  }
+                  console.log('📄 BULK DELETE: Updated ingredient after deletion:', updatedIngredient)
+                  return updatedIngredient
+                }
+                return ingredient
+              })
+            }
+            
+            // Recalculate overall status
+            updatedBulkResult.overall = recalculateOverallStatus(updatedBulkResult)
+            
+            return updatedBulkResult
+          }
+          return bulkResult
+        })
+      }))
+      
+      // Force component re-render
+      setRefreshKey(prev => prev + 1)
+      
+      // Show success message
+      setContextualError({
+        message: `✅ Document deleted successfully! ${ingredientName} status updated.`,
+        context: 'delete-success'
+      })
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setContextualError(null), 3000)
+      
+      console.log(`📄 Document deleted for ${ingredientName}: ${documentId}`)
+      
+    } catch (error: any) {
+      console.error('Document deletion error:', error)
+      setError(`Document deletion failed: ${error.message}`)
+    }
   }
 
   // Client management functions
@@ -1014,80 +1106,6 @@ export default function AnalyzePage() {
     })
   }
 
-  // Delete individual document from ingredient
-  const deleteDocument = (analysisId: string, ingredientName: string, documentId: string) => {
-    console.log('🗑️ DELETE DOC:', { analysisId, ingredientName, documentId })
-    
-    // Update both solo and bulk analysis results
-    setState(prevState => ({
-      ...prevState,
-      // Update solo analysis results
-      analysisResults: prevState.analysisResults.map(analysis => {
-        if (analysis.id === analysisId) {
-          const updatedAnalysis = {
-            ...analysis,
-            ingredients: analysis.ingredients.map(ingredient => {
-              if (ingredient.name === ingredientName) {
-                const updatedDocs = (ingredient.verificationDocuments || []).filter(doc => doc.id !== documentId)
-                console.log('🗑️ DOC COUNT CHANGE:', ingredient.verificationDocuments?.length, '→', updatedDocs.length)
-                
-                // If no documents left, change status back to REQUIRES_REVIEW
-                const newStatus = updatedDocs.length === 0 ? 'REQUIRES_REVIEW' : 'APPROVED'
-                
-                return {
-                  ...ingredient,
-                  verificationDocuments: updatedDocs,
-                  status: newStatus as any,
-                  verificationStatus: updatedDocs.length > 0 ? 'verified' as const : undefined
-                }
-              }
-              return ingredient
-            })
-          }
-          
-          // Recalculate overall status
-          updatedAnalysis.overall = recalculateOverallStatus(updatedAnalysis)
-          return updatedAnalysis
-        }
-        return analysis
-      }),
-      // Update bulk analysis results
-      bulkResults: prevState.bulkResults.map(bulkResult => {
-        if (bulkResult.id === analysisId) {
-          const updatedBulkResult = {
-            ...bulkResult,
-            ingredients: bulkResult.ingredients.map(ingredient => {
-              if (ingredient.name === ingredientName) {
-                const updatedDocs = (ingredient.verificationDocuments || []).filter(doc => doc.id !== documentId)
-                console.log('🗑️ BULK DOC COUNT CHANGE:', ingredient.verificationDocuments?.length, '→', updatedDocs.length)
-                
-                // If no documents left, change status back to REQUIRES_REVIEW
-                const newStatus = updatedDocs.length === 0 ? 'REQUIRES_REVIEW' : 'APPROVED'
-                
-                return {
-                  ...ingredient,
-                  verificationDocuments: updatedDocs,
-                  status: newStatus as any,
-                  verificationStatus: updatedDocs.length > 0 ? 'verified' as const : undefined
-                }
-              }
-              return ingredient
-            })
-          }
-          
-          // Recalculate overall status
-          updatedBulkResult.overall = recalculateOverallStatus(updatedBulkResult)
-          return updatedBulkResult
-        }
-        return bulkResult
-      })
-    }))
-    
-    // Force refresh
-    setRefreshKey(prev => prev + 1)
-    
-    console.log('🗑️ DOCUMENT DELETED successfully')
-  }
 
   // Enhanced drag and drop functionality for bulk upload
   const onDropBulk = useCallback(async (acceptedFiles: File[]) => {
@@ -1332,6 +1350,52 @@ export default function AnalyzePage() {
       costSaved: costSaved,
       analysisTime: analysisTime
     }
+  }
+
+  // Bulk document icon function
+  const getBulkDocumentIcon = (filename: string, type: string) => {
+    const ext = filename.toLowerCase().split('.').pop()
+    if (ext === 'pdf') {
+      return (
+        <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center shadow-md">
+          <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        </div>
+      )
+    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) {
+      return (
+        <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl flex items-center justify-center shadow-md">
+          <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      )
+    } else {
+      return (
+        <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center shadow-md">
+          <svg className="w-6 h-6 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        </div>
+      )
+    }
+  }
+
+  // Bulk document type badge function
+  const getBulkDocumentTypeBadge = (type: string) => {
+    const typeMap = {
+      'certificate': { color: 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border-emerald-300', icon: '🏆', label: 'Certificate' },
+      'supplier_letter': { color: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border-blue-300', icon: '📄', label: 'Supplier Letter' },
+      'lab_report': { color: 'bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border-purple-300', icon: '🔬', label: 'Lab Report' },
+      'other': { color: 'bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-300', icon: '📎', label: 'Other Document' }
+    }
+    const typeInfo = typeMap[type as keyof typeof typeMap] || typeMap.other
+    return (
+      <span className={`text-xs px-3 py-1.5 rounded-full font-bold border shadow-sm ${typeInfo.color}`}>
+        {typeInfo.icon} {typeInfo.label}
+      </span>
+    )
   }
 
   // Keyboard shortcuts for power users (defined after all functions)
@@ -2378,32 +2442,32 @@ export default function AnalyzePage() {
                                             const ext = filename.toLowerCase().split('.').pop()
                                             if (ext === 'pdf') {
                                               return (
-                                                <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
-                                                  <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center shadow-md">
+                                                  <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                                                   </svg>
                                                 </div>
                                               )
                                             } else if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) {
                                               return (
-                                                <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl flex items-center justify-center shadow-md">
+                                                  <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                   </svg>
                                                 </div>
                                               )
                                             } else if (['doc', 'docx'].includes(ext || '')) {
                                               return (
-                                                <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                                                  <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-md">
+                                                  <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                                                   </svg>
                                                 </div>
                                               )
                                             } else {
                                               return (
-                                                <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                                                  <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center shadow-md">
+                                                  <svg className="w-6 h-6 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                                                   </svg>
                                                 </div>
@@ -2413,84 +2477,120 @@ export default function AnalyzePage() {
 
                                           const getDocumentTypeBadge = (type: string) => {
                                             const typeMap = {
-                                              'certificate': { color: 'bg-green-100 text-green-700', icon: '🏆', label: 'Certificate' },
-                                              'supplier_letter': { color: 'bg-blue-100 text-blue-700', icon: '📄', label: 'Supplier Letter' },
-                                              'lab_report': { color: 'bg-purple-100 text-purple-700', icon: '🔬', label: 'Lab Report' },
-                                              'other': { color: 'bg-gray-100 text-gray-700', icon: '📎', label: 'Other Document' }
+                                              'certificate': { color: 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border-emerald-300', icon: '🏆', label: 'Certificate' },
+                                              'supplier_letter': { color: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border-blue-300', icon: '📄', label: 'Supplier Letter' },
+                                              'lab_report': { color: 'bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border-purple-300', icon: '🔬', label: 'Lab Report' },
+                                              'other': { color: 'bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-300', icon: '📎', label: 'Other Document' }
                                             }
                                             const typeInfo = typeMap[type as keyof typeof typeMap] || typeMap.other
                                             return (
-                                              <span className={`text-xs px-2 py-1 rounded font-medium ${typeInfo.color}`}>
+                                              <span className={`text-xs px-3 py-1.5 rounded-full font-bold border shadow-sm ${typeInfo.color}`}>
                                                 {typeInfo.icon} {typeInfo.label}
                                               </span>
                                             )
                                           }
 
                                           return (
-                                            <div key={doc.id} className="bg-green-50 border border-green-200 rounded-xl p-4">
-                                              <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center space-x-2">
-                                                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                  </svg>
-                                                  <span className="text-sm font-bold text-green-800">{doc.filename}</span>
+                                            <div key={doc.id} className="relative group bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border border-emerald-200/60 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm">
+                                              {/* Premium Success Badge */}
+                                              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white p-2 rounded-full shadow-lg">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                              </div>
+                                              
+                                              <div className="flex items-start justify-between mb-4">
+                                                <div className="flex items-center space-x-3">
+                                                  {getDocumentIcon(doc.filename, doc.type)}
+                                                  <div className="flex-1 min-w-0">
+                                                    <h4 className="text-base font-bold text-emerald-900 truncate group-hover:text-emerald-800 transition-colors">
+                                                      {doc.filename}
+                                                    </h4>
+                                                    <p className="text-sm text-emerald-700/80 mt-1">
+                                                      Verification Document • {(doc.fileSize ? (doc.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size')}
+                                                    </p>
+                                                  </div>
                                                 </div>
-                                                <div className="flex items-center space-x-2">
-                                                  <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full font-medium">
-                                                    {doc.type}
-                                                  </span>
-                                                  <span className="text-xs text-green-500">
-                                                    {new Date(doc.uploadDate).toLocaleDateString()}
-                                                  </span>
+                                                
+                                                <div className="flex items-center space-x-3">
+                                                  {getDocumentTypeBadge(doc.type)}
+                                                  
+                                                  <div className="text-right">
+                                                    <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-1 rounded-full">
+                                                      ✓ VERIFIED
+                                                    </div>
+                                                    <div className="text-xs text-emerald-600 mt-1">
+                                                      {new Date(doc.uploadDate).toLocaleDateString('en-US', { 
+                                                        month: 'short', 
+                                                        day: 'numeric', 
+                                                        year: 'numeric' 
+                                                      })}
+                                                    </div>
+                                                  </div>
+                                                  
                                                   <button
                                                     onClick={() => deleteDocument(result.id, ingredient.name, doc.id)}
-                                                    className="text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50"
-                                                    title="Delete this document"
+                                                    className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-all duration-200 p-2 rounded-full hover:bg-red-50 hover:shadow-md transform hover:scale-110"
+                                                    title="Remove this document"
                                                   >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                                   </button>
                                                 </div>
                                               </div>
                                               
-                                              {/* Document Preview Showcase */}
+                                              {/* Premium Document Preview */}
                                               {doc.previewUrl && (
-                                                <div className="mt-3">
+                                                <div className="mt-4 bg-white/70 rounded-xl p-4 border border-emerald-200/50 backdrop-blur-sm">
+                                                  <div className="text-xs font-semibold text-emerald-800 mb-3 flex items-center">
+                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                    Document Preview
+                                                  </div>
                                                   {doc.fileType?.startsWith('image/') ? (
-                                                    <div className="border-2 border-green-300 rounded-lg overflow-hidden">
+                                                    <div className="relative overflow-hidden rounded-xl border-2 border-emerald-300/50 bg-gradient-to-br from-white to-emerald-50 shadow-inner">
                                                       <img 
                                                         src={doc.previewUrl} 
                                                         alt={doc.filename}
-                                                        className="w-full max-w-md max-h-64 object-contain bg-white"
-                                                        onLoad={() => console.log('Solo analysis - Document image loaded:', doc.filename)}
+                                                        className="w-full max-h-80 object-contain p-2"
+                                                        onLoad={() => console.log('Premium document image loaded:', doc.filename)}
                                                       />
+                                                      <div className="absolute top-2 right-2 bg-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                                        IMAGE
+                                                      </div>
                                                     </div>
                                                   ) : doc.fileType === 'application/pdf' ? (
-                                                    <div className="border-2 border-green-300 rounded-lg p-4 bg-white text-center">
-                                                      <svg className="w-16 h-16 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-6 text-center relative overflow-hidden">
+                                                      <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/10 rounded-full -mr-10 -mt-10"></div>
+                                                      <svg className="w-20 h-20 text-red-600 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                                                       </svg>
-                                                      <p className="text-sm font-medium text-green-700 mb-1">PDF Document</p>
-                                                      <p className="text-xs text-green-600">{doc.filename}</p>
+                                                      <h3 className="text-lg font-bold text-red-800 mb-2">PDF Certificate</h3>
+                                                      <p className="text-sm text-red-700 mb-4 truncate">{doc.filename}</p>
                                                       <button 
                                                         onClick={() => window.open(doc.previewUrl, '_blank')}
-                                                        className="mt-2 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors"
+                                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                                                       >
+                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                        </svg>
                                                         Open PDF
                                                       </button>
                                                     </div>
                                                   ) : (
-                                                    <div className="border-2 border-green-300 rounded-lg p-4 bg-white text-center">
-                                                      <svg className="w-12 h-12 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6 text-center">
+                                                      <svg className="w-16 h-16 text-blue-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                       </svg>
-                                                      <p className="text-sm font-medium text-green-700 mb-1">Document Uploaded</p>
-                                                      <p className="text-xs text-green-600">{doc.filename}</p>
+                                                      <h3 className="text-base font-bold text-blue-800 mb-1">Verified Document</h3>
+                                                      <p className="text-sm text-blue-700 truncate">{doc.filename}</p>
                                                       {doc.fileSize && (
-                                                        <p className="text-xs text-green-500 mt-1">
+                                                        <div className="mt-2 text-xs text-blue-600 bg-blue-200/50 px-3 py-1 rounded-full inline-block">
                                                           {(doc.fileSize / 1024 / 1024).toFixed(2)} MB
-                                                        </p>
+                                                        </div>
                                                       )}
                                                     </div>
                                                   )}
@@ -2500,8 +2600,8 @@ export default function AnalyzePage() {
                                           )
                                         })}
                                         
-                                        {/* Additional Upload Option for Existing Documents */}
-                                        <div className="border border-dashed border-green-300 rounded-lg p-3 bg-green-25">
+                                        {/* Premium Additional Upload Option */}
+                                        <div className="relative bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-dashed border-emerald-300 rounded-xl p-4 hover:border-emerald-400 transition-all duration-200 group">
                                           <input
                                             type="file"
                                             id={`additional-doc-upload-${idx}`}
@@ -2511,46 +2611,90 @@ export default function AnalyzePage() {
                                           />
                                           <label
                                             htmlFor={`additional-doc-upload-${idx}`}
-                                            className="cursor-pointer inline-flex items-center space-x-2 text-sm text-green-700 hover:text-green-800 font-medium"
+                                            className="cursor-pointer flex items-center justify-center space-x-3 text-emerald-700 hover:text-emerald-800 transition-colors group-hover:scale-105 transform duration-200"
                                           >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                            </svg>
-                                            <span>Upload Additional Document</span>
+                                            <div className="bg-emerald-100 p-2 rounded-full group-hover:bg-emerald-200 transition-colors">
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                              </svg>
+                                            </div>
+                                            <div className="text-center">
+                                              <div className="font-semibold text-sm">Upload Additional Document</div>
+                                              <div className="text-xs text-emerald-600">PDF, Images • Max 10MB</div>
+                                            </div>
                                           </label>
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="border-4 border-dashed border-amber-400 rounded-xl p-6 text-center bg-amber-50">
-                                        <div className="mb-3">
-                                          <svg className="w-12 h-12 text-amber-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                          </svg>
-                                          <div className="text-lg font-bold text-amber-800 mb-1">
-                                            ⚠️ Documentation Required
-                                          </div>
-                                          <div className="text-sm text-amber-700 font-medium">
-                                            This ingredient requires verification documentation
-                                          </div>
+                                      <div className="relative overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 border-3 border-dashed border-amber-400/60 rounded-2xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 group">
+                                        {/* Background Pattern */}
+                                        <div className="absolute inset-0 opacity-5">
+                                          <div className="absolute top-4 left-4 w-8 h-8 border border-amber-400 rounded-full"></div>
+                                          <div className="absolute top-8 right-6 w-6 h-6 border border-amber-400 rounded-full"></div>
+                                          <div className="absolute bottom-6 left-8 w-4 h-4 border border-amber-400 rounded-full"></div>
+                                          <div className="absolute bottom-4 right-4 w-10 h-10 border border-amber-400 rounded-full"></div>
                                         </div>
-                                        <input
-                                          type="file"
-                                          id={`doc-upload-${idx}`}
-                                          className="hidden"
-                                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                          onChange={(e) => handleDocumentUpload(e, result.id, ingredient.name)}
-                                        />
-                                        <label
-                                          htmlFor={`doc-upload-${idx}`}
-                                          className="cursor-pointer inline-flex items-center space-x-2 text-base text-amber-800 hover:text-amber-900 font-bold bg-amber-200 hover:bg-amber-300 px-6 py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
-                                        >
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                          </svg>
-                                          <span>Upload Verification Document</span>
-                                        </label>
-                                        <div className="text-sm text-amber-600 mt-2 font-medium">
-                                          PDF, JPG, PNG, DOC files accepted • Required for compliance
+                                        
+                                        <div className="relative z-10">
+                                          <div className="bg-gradient-to-br from-amber-500 to-orange-500 w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
+                                          </div>
+                                          
+                                          <div className="mb-6">
+                                            <h3 className="text-xl font-bold text-amber-900 mb-2 flex items-center justify-center">
+                                              <svg className="w-5 h-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                              </svg>
+                                              Documentation Required
+                                            </h3>
+                                            <p className="text-sm text-amber-800 font-medium max-w-xs mx-auto leading-relaxed">
+                                              This ingredient requires verification documents to ensure halal compliance
+                                            </p>
+                                          </div>
+                                          
+                                          <input
+                                            type="file"
+                                            id={`doc-upload-${idx}`}
+                                            className="hidden"
+                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                            onChange={(e) => handleDocumentUpload(e, result.id, ingredient.name)}
+                                          />
+                                          <label
+                                            htmlFor={`doc-upload-${idx}`}
+                                            className="cursor-pointer inline-flex items-center space-x-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-8 py-4 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 group-hover:animate-pulse"
+                                          >
+                                            <div className="bg-white/20 p-2 rounded-full">
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                              </svg>
+                                            </div>
+                                            <span className="text-base">Upload Verification Document</span>
+                                          </label>
+                                          
+                                          <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-amber-700">
+                                            <div className="flex items-center space-x-1">
+                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                              </svg>
+                                              <span>PDF, Images</span>
+                                            </div>
+                                            <div className="w-1 h-1 bg-amber-600 rounded-full"></div>
+                                            <div className="flex items-center space-x-1">
+                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                              </svg>
+                                              <span>Max 10MB</span>
+                                            </div>
+                                            <div className="w-1 h-1 bg-amber-600 rounded-full"></div>
+                                            <div className="flex items-center space-x-1">
+                                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                              </svg>
+                                              <span>Required</span>
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
                                     )}
@@ -3253,42 +3397,56 @@ export default function AnalyzePage() {
                                                       </div>
                                                     </div>
                                                     
-                                                    {/* Document Display - Match Solo Analysis */}
+                                                    {/* Premium Document Display - Match Solo Analysis */}
                                                     {ing.verificationDocuments.map((doc, docIdx) => (
-                                                      <div key={docIdx} className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
-                                                        <div className="flex items-start space-x-3">
-                                                          <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
-                                                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        <div key={docIdx} className="relative group bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border border-emerald-200/60 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm">
+                                                          {/* Premium Success Badge */}
+                                                          <div className="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white p-2 rounded-full shadow-lg">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                             </svg>
                                                           </div>
-                                                          <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                              <span className="text-sm font-medium text-green-800 truncate">
-                                                                {doc.filename}
-                                                              </span>
-                                                              <div className="flex items-center space-x-2">
-                                                                <span className="text-xs text-green-600 font-medium">
-                                                                  {new Date(doc.uploadDate).toLocaleDateString()}
-                                                                </span>
-                                                                <button
-                                                                  onClick={() => deleteDocument(result.id, ing.name, doc.id)}
-                                                                  className="text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50"
-                                                                  title="Delete this document"
-                                                                >
-                                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                  </svg>
-                                                                </button>
+                                                          
+                                                          <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex items-center space-x-3">
+                                                              {getBulkDocumentIcon(doc.filename, doc.type)}
+                                                              <div className="flex-1 min-w-0">
+                                                                <h4 className="text-base font-bold text-emerald-900 truncate group-hover:text-emerald-800 transition-colors">
+                                                                  {doc.filename}
+                                                                </h4>
+                                                                <p className="text-sm text-emerald-700/80 mt-1">
+                                                                  Verification Document • {(doc.fileSize ? (doc.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size')}
+                                                                </p>
                                                               </div>
                                                             </div>
-                                                            <div className="flex items-center justify-between">
-                                                              <span className="text-xs px-2 py-1 rounded font-medium bg-green-100 text-green-700">
-                                                                {doc.type}
-                                                              </span>
+                                                            
+                                                            <div className="flex items-center space-x-3">
+                                                              {getBulkDocumentTypeBadge(doc.type)}
+                                                              
+                                                              <div className="text-right">
+                                                                <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-1 rounded-full">
+                                                                  ✓ VERIFIED
+                                                                </div>
+                                                                <div className="text-xs text-emerald-600 mt-1">
+                                                                  {new Date(doc.uploadDate).toLocaleDateString('en-US', { 
+                                                                    month: 'short', 
+                                                                    day: 'numeric', 
+                                                                    year: 'numeric' 
+                                                                  })}
+                                                                </div>
+                                                              </div>
+                                                              
+                                                              <button
+                                                                onClick={() => deleteDocument(result.id, ing.name, doc.id)}
+                                                                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-all duration-200 p-2 rounded-full hover:bg-red-50 hover:shadow-md transform hover:scale-110"
+                                                                title="Remove this document"
+                                                              >
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                              </button>
                                                             </div>
                                                           </div>
-                                                        </div>
                                                         
                                                         {/* Document Preview - Match Solo Analysis */}
                                                         {doc.previewUrl && (
@@ -3330,8 +3488,8 @@ export default function AnalyzePage() {
                                                       </div>
                                                     ))}
                                                     
-                                                    {/* Upload Additional Document Button */}
-                                                    <div className="border border-dashed border-green-300 rounded-lg p-3 bg-green-25">
+                                                    {/* Premium Upload Additional Document Button */}
+                                                    <div className="relative group border-2 border-dashed border-emerald-300/60 rounded-2xl p-6 bg-gradient-to-br from-emerald-50/50 via-green-50/50 to-teal-50/50 hover:border-emerald-400/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm">
                                                       <input
                                                         type="file"
                                                         id={`additional-bulk-doc-upload-${idx}`}
@@ -3341,35 +3499,50 @@ export default function AnalyzePage() {
                                                       />
                                                       <label
                                                         htmlFor={`additional-bulk-doc-upload-${idx}`}
-                                                        className="cursor-pointer inline-flex items-center space-x-2 text-sm text-green-700 hover:text-green-800 font-medium"
+                                                        className="cursor-pointer group-hover:scale-105 transition-transform duration-200 inline-flex items-center space-x-3 text-base text-emerald-700 hover:text-emerald-800 font-bold"
                                                       >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                        </svg>
-                                                        <span>Upload Additional Document</span>
+                                                        <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full text-white shadow-lg group-hover:shadow-xl transition-shadow">
+                                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                          </svg>
+                                                        </div>
+                                                        <span className="bg-gradient-to-r from-emerald-700 to-green-700 bg-clip-text text-transparent">
+                                                          Upload Additional Document
+                                                        </span>
                                                       </label>
                                                     </div>
                                                   </div>
                                                 )}
                                                 
-                                                {/* Initial Upload Section for Mashbooh without documents */}
+                                                {/* Premium Initial Upload Section for Mashbooh without documents */}
                                                 {!hasDocuments && (
-                                                  <div className="border-2 border-dashed border-orange-300 rounded-lg p-4 text-center">
-                                                    <svg className="w-8 h-8 text-orange-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                                    </svg>
-                                                    <div className="flex items-center justify-center space-x-2">
-                                                      <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                  <div className="relative group border-2 border-dashed border-orange-300/70 rounded-2xl p-8 text-center bg-gradient-to-br from-orange-50/80 via-amber-50/80 to-yellow-50/80 hover:border-orange-400/90 transition-all duration-300 hover:shadow-xl backdrop-blur-sm">
+                                                    {/* Premium Upload Icon */}
+                                                    <div className="relative mx-auto mb-6 w-16 h-16 bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow group-hover:scale-110 transform duration-300">
+                                                      <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                       </svg>
-                                                      <p className="font-semibold text-orange-700">Documentation Required</p>
+                                                      {/* Floating Warning Badge */}
+                                                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                        </svg>
+                                                      </div>
                                                     </div>
-                                                    <p className="text-sm text-orange-600 mt-1">This ingredient requires verification documentation</p>
                                                     
-                                                    <label className="mt-3 inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 cursor-pointer transition-colors">
-                                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                                                      </svg>
+                                                    <div className="mb-4">
+                                                      <h4 className="text-xl font-bold bg-gradient-to-r from-orange-700 to-red-600 bg-clip-text text-transparent mb-2">
+                                                        Documentation Required
+                                                      </h4>
+                                                      <p className="text-orange-700/80 font-medium">This ingredient requires verification documentation for halal compliance</p>
+                                                    </div>
+                                                    
+                                                    <label className="group/btn cursor-pointer inline-flex items-center px-8 py-4 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white rounded-2xl hover:from-orange-600 hover:via-orange-700 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-bold text-base">
+                                                      <div className="p-1 bg-white/20 rounded-full mr-3 group-hover/btn:bg-white/30 transition-colors">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                      </div>
                                                       Upload Verification Document
                                                       <input
                                                         type="file"
@@ -3378,6 +3551,11 @@ export default function AnalyzePage() {
                                                         className="hidden"
                                                       />
                                                     </label>
+                                                    
+                                                    {/* Premium Info Text */}
+                                                    <p className="text-xs text-orange-600/70 mt-4 font-medium">
+                                                      Supported formats: PDF, JPG, PNG, DOC, DOCX • Max size: 10MB
+                                                    </p>
                                                   </div>
                                                 )}
                                               </div>

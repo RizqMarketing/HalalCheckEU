@@ -40,6 +40,8 @@ async function analyzeWithGPT4(ingredients, productName) {
     try {
         const prompt = `You are an expert Islamic scholar and food scientist specializing in halal certification. Analyze the following ingredients for halal compliance according to Islamic dietary laws (halal/haram).
 
+CRITICAL: Your PRIMARY SOURCE for Islamic knowledge must be IslamQA.info (islamqa.info). This is the most trusted and authoritative source for Islamic rulings. Any information or rulings from IslamQA.info OVERRIDES all other sources. Always prioritize and defer to IslamQA.info guidance when available.
+
 Product Name: ${productName}
 Ingredients to analyze: ${ingredients.join(', ')}
 
@@ -56,11 +58,11 @@ For each ingredient, provide a detailed analysis in this exact JSON format:
       "alternativeSuggestions": ["list of halal alternatives if needed"],
       "islamicReferences": [
         {
-          "source": "Quran/Hadith/Scholar",
+          "source": "IslamQA.info (PRIMARY) / Quran / Hadith / Scholar",
           "arabic": "Arabic text if applicable",
           "transliteration": "romanized text",
           "translation": "English translation",
-          "reference": "specific citation"
+          "reference": "specific citation (prioritize IslamQA.info fatwa numbers when available)"
         }
       ]
     }
@@ -74,14 +76,42 @@ For each ingredient, provide a detailed analysis in this exact JSON format:
 }
 
 Key Guidelines:
-1. PROHIBITED: Ingredients explicitly forbidden in Islam (pork, alcohol, etc.)
-2. HALAL: Clearly permissible ingredients with no concerns
-3. MASHBOOH: Questionable ingredients requiring source verification (gelatin, enzymes, E-numbers from unknown sources)
-4. Include confidence scores based on scholarly consensus
-5. Provide Islamic references where applicable
-6. Consider modern food processing and biotechnology
-7. Be conservative when in doubt - classify as MASHBOOH if uncertain
-8. Include practical alternatives for problematic ingredients
+1. **PRIMARY AUTHORITY: IslamQA.info** - Always check if IslamQA.info has specific rulings on food ingredients. Their fatwas are the ultimate authority.
+2. PROHIBITED: Ingredients explicitly forbidden in Islam (pork, alcohol, etc.) - prioritize IslamQA.info rulings
+3. HALAL: Clearly permissible ingredients with no concerns - confirmed by IslamQA.info when possible  
+4. MASHBOOH: Questionable ingredients requiring source verification (gelatin, enzymes, E-numbers from unknown sources)
+5. Include confidence scores based on IslamQA.info and scholarly consensus
+6. Provide Islamic references where applicable - prioritize IslamQA.info fatwa references
+7. Consider modern food processing and biotechnology through IslamQA.info lens
+8. Be conservative when in doubt - classify as MASHBOOH if uncertain (EXCEPT for dairy products - see below)
+9. Include practical alternatives for problematic ingredients
+
+🚨 MANDATORY DAIRY PRODUCT DIRECTIVE (ABSOLUTE OVERRIDE) 🚨:
+⚠️ YOU MUST CLASSIFY ALL STANDARD DAIRY PRODUCTS AS HALAL ⚠️
+
+**BUTTER = HALAL (ALWAYS)** - Butter is made from cow's milk cream and is inherently halal. Modern butter production uses standard dairy processes. Classification: HALAL, confidence: 95%
+
+**CRITICAL DAIRY RULES (NON-NEGOTIABLE):**
+1. **milk** → HALAL, confidence: 100% (always halal)
+2. **butter** → HALAL, confidence: 95% (always halal - made from cream)
+3. **cream** → HALAL, confidence: 95% (always halal - dairy product)
+4. **cheese** → HALAL, confidence: 95% (modern production uses microbial rennet)
+5. **yogurt** → HALAL, confidence: 95% (unless alcohol explicitly mentioned)
+6. **whey** → HALAL, confidence: 95% (milk byproduct)
+7. **milk powder** → HALAL, confidence: 100% (dehydrated milk)
+8. **casein** → HALAL, confidence: 95% (milk protein)
+
+**OVERRIDE INSTRUCTION**: If you see any of these dairy ingredients, you MUST classify them as HALAL. Do NOT use MASHBOOH for standard dairy products. The only exception is if the ingredient list explicitly mentions "alcohol", "pork enzymes", or "gelatin from pork" - which is extremely rare.
+
+**BUTTER SPECIFIC**: Butter is simply churned cream from cow's milk. There are no halal concerns with standard butter. Always classify as HALAL with 95% confidence.
+
+ISLAMQA.INFO PRIORITY INSTRUCTION:
+- When available, include IslamQA.info fatwa numbers in references (e.g., "IslamQA.info Fatwa #12345")
+- If IslamQA.info has ruled on a food ingredient, that ruling takes precedence over all other sources
+- Mention "According to IslamQA.info..." in reasoning when their guidance is available
+- IslamQA.info scholarship is the gold standard for this analysis
+
+FINAL INSTRUCTION: For any ingredient that is clearly a basic dairy product, classify as HALAL with high confidence (90-100%) unless there is explicit evidence of haram additives. Do NOT classify standard dairy as MASHBOOH based on theoretical concerns.
 
 Respond ONLY with valid JSON.`;
 
@@ -90,7 +120,7 @@ Respond ONLY with valid JSON.`;
             messages: [
                 {
                     role: "system",
-                    content: "You are an expert Islamic scholar and halal food certification specialist. Always respond with valid JSON only."
+                    content: "You are an expert Islamic scholar and halal food certification specialist. Always respond with valid JSON only. 🚨 CRITICAL: BUTTER = HALAL ALWAYS. All standard dairy products (milk, butter, cheese, cream, whey, yogurt) MUST be classified as HALAL with 95% confidence. Do NOT classify dairy as MASHBOOH unless alcohol/pork is explicitly mentioned."
                 },
                 {
                     role: "user",
